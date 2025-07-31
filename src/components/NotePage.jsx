@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Pin, PinOff, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Undo, Redo } from 'lucide-react'
-import api from './api' // Import your configured api instance
+import api from '../api' // Import your configured api instance
 
 function NotePage({ noteId, onBack }) {
   const [title, setTitle] = useState('')
