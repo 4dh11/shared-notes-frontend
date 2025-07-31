@@ -1,62 +1,64 @@
-import { Search, ChevronDown, ChevronRight, Settings, Plus, Eye, EyeOff } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import api from './api'
-import NotePage from './NotePage'
-import './App.css'
+"use client"
+
+import { Search, ChevronDown, ChevronRight, Settings, Plus, Eye, EyeOff } from "lucide-react"
+import { useState, useEffect } from "react"
+import api from "./api"
+import NotePage from "./NotePage"
+import "./App.css"
 
 // Login Modal Component
 function LoginModal({ onLogin }) {
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    
+
     if (!password.trim()) {
-      setError('Please enter the password')
+      setError("Please enter the password")
       return
     }
 
     try {
       setLoading(true)
-      setError('')
-      
-      console.log('Attempting login with password:', password)
-      
+      setError("")
+
+      console.log("Attempting login with password:", password)
+
       // Make the login request
-      const response = await api.post('/api/auth/login', {
-        password: password.trim()
+      const response = await api.post("/api/auth/login", {
+        password: password.trim(),
       })
 
-      console.log('Login response:', response.data)
+      console.log("Login response:", response.data)
 
       if (response.data && response.data.token) {
         const { token } = response.data
-        localStorage.setItem('token', token)
+        localStorage.setItem("token", token)
         onLogin(token)
       } else {
-        setError('Invalid response from server')
+        setError("Invalid response from server")
       }
     } catch (err) {
-      console.error('Login error details:', {
+      console.error("Login error details:", {
         message: err.message,
         response: err.response?.data,
         status: err.response?.status,
-        config: err.config
+        config: err.config,
       })
 
       if (err.response?.status === 401) {
-        setError('Invalid password')
+        setError("Invalid password")
       } else if (err.response?.status === 500) {
-        setError('Server error. Please try again.')
-      } else if (err.code === 'NETWORK_ERROR' || err.message.includes('Network Error')) {
-        setError('Connection failed. Please check your internet and try again.')
-      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        setError('Request timeout. The server might be starting up, please wait and try again.')
+        setError("Server error. Please try again.")
+      } else if (err.code === "NETWORK_ERROR" || err.message.includes("Network Error")) {
+        setError("Connection failed. Please check your internet and try again.")
+      } else if (err.code === "ECONNABORTED" || err.message.includes("timeout")) {
+        setError("Request timeout. The server might be starting up, please wait and try again.")
       } else {
-        setError(`Login failed: ${err.response?.data?.message || err.message || 'Unknown error'}`)
+        setError(`Login failed: ${err.response?.data?.message || err.message || "Unknown error"}`)
       }
     } finally {
       setLoading(false)
@@ -67,18 +69,14 @@ function LoginModal({ onLogin }) {
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-neutral-800 rounded-xl p-6 w-full max-w-md mx-4 border border-neutral-700">
         <h2 className="text-white text-2xl font-bold mb-6 text-center">Access Shared Notes</h2>
-        
+
         {error && (
-          <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
-            {error}
-          </div>
+          <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
-              Password
-            </label>
+            <label className="block text-gray-300 text-sm font-medium mb-2">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -105,12 +103,12 @@ function LoginModal({ onLogin }) {
             disabled={loading}
             className="w-full bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
           >
-            {loading ? 'Accessing...' : 'Access Notes'}
+            {loading ? "Accessing..." : "Access Notes"}
           </button>
         </form>
 
         {/* Debug info in development */}
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <div className="mt-4 p-2 bg-gray-800 rounded text-xs text-gray-400">
             <div>Backend URL: https://shared-notes-backend.onrender.com</div>
             <div>Login endpoint: /api/auth/login</div>
@@ -121,22 +119,15 @@ function LoginModal({ onLogin }) {
   )
 }
 
-function Header({ onSettingsClick, onLogout }) {
+// MODIFIED: Removed onLogout prop
+function Header({ onSettingsClick }) {
   return (
     <header className="bg-neutral-800 p-4">
       <div className="flex justify-between items-center">
         <h1 className="text-white text-xl font-bold">Shared Notes</h1>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={onLogout}
-            className="text-white hover:text-gray-300 p-2 text-sm bg-neutral-700 rounded"
-          >
-            Logout
-          </button>
-          <button 
-            onClick={onSettingsClick}
-            className="text-white hover:text-gray-300 p-2"
-          >
+          {/* MODIFIED: Removed the Logout button */}
+          <button onClick={onSettingsClick} className="text-white hover:text-gray-300 p-2">
             <Settings className="h-6 w-6" />
           </button>
         </div>
@@ -149,19 +140,16 @@ function Header({ onSettingsClick, onLogout }) {
 function ContextMenu({ x, y, onDelete, onClose }) {
   useEffect(() => {
     const handleClickOutside = () => onClose()
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
   }, [onClose])
 
   return (
-    <div 
+    <div
       className="fixed bg-neutral-700 border border-neutral-600 rounded-lg shadow-lg z-50 py-1"
       style={{ left: x, top: y }}
     >
-      <button
-        onClick={onDelete}
-        className="w-full px-4 py-2 text-left text-red-400 hover:bg-neutral-600 text-sm"
-      >
+      <button onClick={onDelete} className="w-full px-4 py-2 text-left text-red-400 hover:bg-neutral-600 text-sm">
         Delete
       </button>
     </div>
@@ -171,26 +159,26 @@ function ContextMenu({ x, y, onDelete, onClose }) {
 function App() {
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(true)
   const [isAllNotesExpanded, setIsAllNotesExpanded] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState("")
   const [pinnedNotes, setPinnedNotes] = useState([])
   const [allNotes, setAllNotes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
   const [contextMenu, setContextMenu] = useState(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [currentView, setCurrentView] = useState('home')
+  const [currentView, setCurrentView] = useState("home")
   const [currentNoteId, setCurrentNoteId] = useState(null)
 
   // Check for existing token on app start
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem("token")
     if (token) {
-      console.log('Found existing token, attempting to verify...')
+      console.log("Found existing token, attempting to verify...")
       // Try to fetch notes to verify token is still valid
       verifyTokenAndFetchNotes(token)
     } else {
-      console.log('No existing token found, showing login modal')
+      console.log("No existing token found, showing login modal")
       setShowLoginModal(true)
       setLoading(false)
     }
@@ -200,27 +188,24 @@ function App() {
   const verifyTokenAndFetchNotes = async (token) => {
     try {
       setLoading(true)
-      console.log('Verifying token and fetching notes...')
-      
-      const [pinnedRes, allRes] = await Promise.all([
-        api.get('/api/notes/pinned'),
-        api.get('/api/notes')
-      ])
-      
-      console.log('Token verification successful, notes fetched')
+      console.log("Verifying token and fetching notes...")
+
+      const [pinnedRes, allRes] = await Promise.all([api.get("/api/notes/pinned"), api.get("/api/notes")])
+
+      console.log("Token verification successful, notes fetched")
       setPinnedNotes(pinnedRes.data)
-      setAllNotes(allRes.data.filter(note => !note.pinned))
+      setAllNotes(allRes.data.filter((note) => !note.pinned))
       setIsLoggedIn(true)
       setShowLoginModal(false)
-      setError('')
+      setError("")
     } catch (err) {
-      console.error('Token verification failed:', err)
-      localStorage.removeItem('token')
+      console.error("Token verification failed:", err)
+      localStorage.removeItem("token")
       setIsLoggedIn(false)
       setShowLoginModal(true)
       setPinnedNotes([])
       setAllNotes([])
-      setError('')
+      setError("")
     } finally {
       setLoading(false)
     }
@@ -228,47 +213,38 @@ function App() {
 
   // Handle successful login
   const handleLogin = (token) => {
-    console.log('Login successful, token received')
+    console.log("Login successful, token received")
     setIsLoggedIn(true)
     setShowLoginModal(false)
     fetchNotes()
   }
 
-  // Handle logout
-  const handleLogout = () => {
-    console.log('Logging out...')
-    localStorage.removeItem('token')
-    setIsLoggedIn(false)
-    setShowLoginModal(true)
-    setPinnedNotes([])
-    setAllNotes([])
-    setError('')
-    setCurrentView('home')
-    setCurrentNoteId(null)
-  }
+  // MODIFIED: Removed handleLogout function as it's no longer needed in the header
+  // If you need logout functionality elsewhere, you'll need to re-implement it.
 
   // Fetch notes from API
   const fetchNotes = async () => {
     try {
       setLoading(true)
-      console.log('Fetching notes...')
-      
-      const [pinnedRes, allRes] = await Promise.all([
-        api.get('/api/notes/pinned'),
-        api.get('/api/notes')
-      ])
-      
-      console.log('Notes fetched successfully')
+      console.log("Fetching notes...")
+
+      const [pinnedRes, allRes] = await Promise.all([api.get("/api/notes/pinned"), api.get("/api/notes")])
+
+      console.log("Notes fetched successfully")
       setPinnedNotes(pinnedRes.data)
-      setAllNotes(allRes.data.filter(note => !note.pinned))
-      setError('')
+      setAllNotes(allRes.data.filter((note) => !note.pinned))
+      setError("")
     } catch (err) {
-      console.error('Error fetching notes:', err)
+      console.error("Error fetching notes:", err)
       if (err.response?.status === 401) {
-        setError('Session expired. Please login again.')
-        handleLogout()
+        setError("Session expired. Please login again.")
+        // If you still want to force logout on 401, you'll need to define handleLogout
+        // or directly clear token and show login modal here.
+        localStorage.removeItem("token")
+        setIsLoggedIn(false)
+        setShowLoginModal(true)
       } else {
-        setError('Failed to fetch notes. Please check your connection.')
+        setError("Failed to fetch notes. Please check your connection.")
       }
       setPinnedNotes([])
       setAllNotes([])
@@ -280,34 +256,34 @@ function App() {
   // Delete note
   const deleteNote = async (noteId) => {
     try {
-      console.log('Deleting note:', noteId)
+      console.log("Deleting note:", noteId)
       await api.delete(`/api/notes/${noteId}`)
-      
-      setPinnedNotes(prev => prev.filter(note => note._id !== noteId))
-      setAllNotes(prev => prev.filter(note => note._id !== noteId))
+
+      setPinnedNotes((prev) => prev.filter((note) => note._id !== noteId))
+      setAllNotes((prev) => prev.filter((note) => note._id !== noteId))
       setContextMenu(null)
-      console.log('Note deleted successfully')
+      console.log("Note deleted successfully")
     } catch (err) {
-      console.error('Error deleting note:', err)
-      setError('Failed to delete note')
+      console.error("Error deleting note:", err)
+      setError("Failed to delete note")
     }
   }
 
   // Handle note click
   const handleNoteClick = (noteId) => {
     setCurrentNoteId(noteId)
-    setCurrentView('note')
+    setCurrentView("note")
   }
 
   // Handle create note
   const handleCreateNote = () => {
     setCurrentNoteId(null)
-    setCurrentView('note')
+    setCurrentView("note")
   }
 
   // Handle back to home
   const handleBackToHome = () => {
-    setCurrentView('home')
+    setCurrentView("home")
     setCurrentNoteId(null)
     fetchNotes()
   }
@@ -318,7 +294,7 @@ function App() {
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
-      noteId
+      noteId,
     })
   }
 
@@ -327,20 +303,21 @@ function App() {
     setContextMenu({
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
-      noteId
+      noteId,
     })
   }
 
   const handleSettingsClick = () => {
-    console.log('Settings clicked')
+    console.log("Settings clicked")
   }
 
   // Filter function for search
   const filterNotes = (notes) => {
     if (!searchQuery.trim()) return notes
-    return notes.filter(note => 
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase())
+    return notes.filter(
+      (note) =>
+        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.content.toLowerCase().includes(searchQuery.toLowerCase()),
     )
   }
 
@@ -372,8 +349,8 @@ function App() {
     }
 
     return (
-      <div 
-        key={note._id} 
+      <div
+        key={note._id}
         className="bg-neutral-800 rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer hover:bg-neutral-700 transition-colors"
         onClick={handleClick}
         onContextMenu={(e) => onContextMenu(e, note._id)}
@@ -399,13 +376,8 @@ function App() {
   }
 
   // Render NotePage if in note view
-  if (currentView === 'note') {
-    return (
-      <NotePage 
-        noteId={currentNoteId} 
-        onBack={handleBackToHome} 
-      />
-    )
+  if (currentView === "note") {
+    return <NotePage noteId={currentNoteId} onBack={handleBackToHome} />
   }
 
   // Render main app (home view)
@@ -413,11 +385,12 @@ function App() {
     <div className="min-h-screen bg-neutral-900">
       {/* Login Modal */}
       {showLoginModal && <LoginModal onLogin={handleLogin} />}
-      
+
       {/* Main App - only show if logged in */}
       {isLoggedIn && (
         <>
-          <Header onSettingsClick={handleSettingsClick} onLogout={handleLogout} />
+          {/* MODIFIED: Removed onLogout prop from Header component instance */}
+          <Header onSettingsClick={handleSettingsClick} />
 
           {error && (
             <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
@@ -454,12 +427,12 @@ function App() {
                 <ChevronRight className="h-5 w-5 text-yellow-500" />
               )}
             </button>
-            
+
             {isPinnedExpanded && (
               <div className="flex flex-wrap gap-3 justify-between">
                 {filteredPinnedNotes.length > 0 ? (
                   filteredPinnedNotes.map((note) => (
-                    <NoteCard 
+                    <NoteCard
                       key={note._id}
                       note={note}
                       onContextMenu={handleContextMenu}
@@ -493,12 +466,12 @@ function App() {
                 <ChevronRight className="h-5 w-5 text-yellow-500" />
               )}
             </button>
-            
+
             {isAllNotesExpanded && (
               <div className="flex flex-wrap gap-3 justify-between pb-6">
                 {filteredAllNotes.length > 0 ? (
                   filteredAllNotes.map((note) => (
-                    <NoteCard 
+                    <NoteCard
                       key={note._id}
                       note={note}
                       onContextMenu={handleContextMenu}
