@@ -1,13 +1,13 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
 import { Search, ChevronDown, ChevronRight, Settings, Plus, Eye, EyeOff } from "lucide-react"
-import { useState, useEffect } from "react"
 import api from "./api"
-import NotePage from "./NotePage"
+import NotePage from "./components/NotePage"
+import SettingsPage from "./components/SettingsPage"
 import "./App.css"
 
-// Login Modal Component
-function LoginModal({ onLogin }) {
+const LoginModal = ({ onLogin }) => {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -27,7 +27,6 @@ function LoginModal({ onLogin }) {
 
       console.log("Attempting login with password:", password)
 
-      // Make the login request
       const response = await api.post("/api/auth/login", {
         password: password.trim(),
       })
@@ -107,7 +106,6 @@ function LoginModal({ onLogin }) {
           </button>
         </form>
 
-        {/* Debug info in development */}
         {process.env.NODE_ENV === "development" && (
           <div className="mt-4 p-2 bg-gray-800 rounded text-xs text-gray-400">
             <div>Backend URL: https://shared-notes-backend.onrender.com</div>
@@ -119,14 +117,12 @@ function LoginModal({ onLogin }) {
   )
 }
 
-// MODIFIED: Removed onLogout prop
-function Header({ onSettingsClick }) {
+const Header = ({ onSettingsClick }) => {
   return (
     <header className="bg-neutral-800 p-4">
       <div className="flex justify-between items-center">
         <h1 className="text-white text-xl font-bold">Shared Notes</h1>
         <div className="flex items-center gap-2">
-          {/* MODIFIED: Removed the Logout button */}
           <button onClick={onSettingsClick} className="text-white hover:text-gray-300 p-2">
             <Settings className="h-6 w-6" />
           </button>
@@ -136,8 +132,7 @@ function Header({ onSettingsClick }) {
   )
 }
 
-// Context Menu Component
-function ContextMenu({ x, y, onDelete, onClose }) {
+const ContextMenu = ({ x, y, onDelete, onClose }) => {
   useEffect(() => {
     const handleClickOutside = () => onClose()
     document.addEventListener("click", handleClickOutside)
@@ -156,7 +151,48 @@ function ContextMenu({ x, y, onDelete, onClose }) {
   )
 }
 
-function App() {
+const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
+  let longPressTimer = null
+
+  const handleMouseDown = () => {
+    longPressTimer = setTimeout(() => onLongPress(note._id), 500)
+  }
+
+  const handleMouseUp = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+  }
+
+  const handleClick = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+    handleNoteClick(note._id)
+  }
+
+  return (
+    <div
+      key={note._id}
+      className="bg-neutral-800 rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer hover:bg-neutral-700 transition-colors"
+      onClick={handleClick}
+      onContextMenu={(e) => onContextMenu(e, note._id)}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onTouchStart={handleMouseDown}
+      onTouchEnd={handleMouseUp}
+    >
+      <h3 className="text-white font-medium mb-2 text-sm">{note.title}</h3>
+      <p className="text-gray-400 text-xs leading-relaxed">
+        {note.content.length > 100 ? `${note.content.substring(0, 100)}...` : note.content}
+      </p>
+    </div>
+  )
+}
+
+const App = () => {
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(true)
   const [isAllNotesExpanded, setIsAllNotesExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -170,22 +206,57 @@ function App() {
   const [currentView, setCurrentView] = useState("home")
   const [currentNoteId, setCurrentNoteId] = useState(null)
 
-  // Check for existing token on app start
+  const handleLogout = useCallback(() => {
+    console.log("Logging out...")
+    localStorage.removeItem("token")
+    setIsLoggedIn(false)
+    setShowLoginModal(true)
+    setPinnedNotes([])
+    setAllNotes([])
+    setError("")
+    setCurrentView("home")
+    setCurrentNoteId(null)
+  }, [])
+
+  const fetchNotes = useCallback(async () => {
+    try {
+      setLoading(true)
+      console.log("Fetching notes...")
+
+      const [pinnedRes, allRes] = await Promise.all([api.get("/api/notes/pinned"), api.get("/api/notes")])
+
+      console.log("Notes fetched successfully")
+      setPinnedNotes(pinnedRes.data)
+      setAllNotes(allRes.data.filter((note) => !note.pinned))
+      setError("")
+    } catch (err) {
+      console.error("Error fetching notes:", err)
+      if (err.response?.status === 401) {
+        setError("Session expired. Please login again.")
+        handleLogout()
+      } else {
+        setError("Failed to fetch notes. Please check your connection.")
+      }
+      setPinnedNotes([])
+      setAllNotes([])
+    } finally {
+      setLoading(false)
+    }
+  }, [handleLogout])
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (token) {
       console.log("Found existing token, attempting to verify...")
-      // Try to fetch notes to verify token is still valid
       verifyTokenAndFetchNotes(token)
     } else {
       console.log("No existing token found, showing login modal")
       setShowLoginModal(true)
       setLoading(false)
     }
-  }, [])
+  }, [fetchNotes])
 
-  // Verify token and fetch notes
-  const verifyTokenAndFetchNotes = async (token) => {
+  const verifyTokenAndFetchNotes = useCallback(async (token) => {
     try {
       setLoading(true)
       console.log("Verifying token and fetching notes...")
@@ -209,51 +280,18 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  // Handle successful login
-  const handleLogin = (token) => {
-    console.log("Login successful, token received")
-    setIsLoggedIn(true)
-    setShowLoginModal(false)
-    fetchNotes()
-  }
+  const handleLogin = useCallback(
+    (token) => {
+      console.log("Login successful, token received")
+      setIsLoggedIn(true)
+      setShowLoginModal(false)
+      fetchNotes()
+    },
+    [fetchNotes],
+  )
 
-  // MODIFIED: Removed handleLogout function as it's no longer needed in the header
-  // If you need logout functionality elsewhere, you'll need to re-implement it.
-
-  // Fetch notes from API
-  const fetchNotes = async () => {
-    try {
-      setLoading(true)
-      console.log("Fetching notes...")
-
-      const [pinnedRes, allRes] = await Promise.all([api.get("/api/notes/pinned"), api.get("/api/notes")])
-
-      console.log("Notes fetched successfully")
-      setPinnedNotes(pinnedRes.data)
-      setAllNotes(allRes.data.filter((note) => !note.pinned))
-      setError("")
-    } catch (err) {
-      console.error("Error fetching notes:", err)
-      if (err.response?.status === 401) {
-        setError("Session expired. Please login again.")
-        // If you still want to force logout on 401, you'll need to define handleLogout
-        // or directly clear token and show login modal here.
-        localStorage.removeItem("token")
-        setIsLoggedIn(false)
-        setShowLoginModal(true)
-      } else {
-        setError("Failed to fetch notes. Please check your connection.")
-      }
-      setPinnedNotes([])
-      setAllNotes([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Delete note
   const deleteNote = async (noteId) => {
     try {
       console.log("Deleting note:", noteId)
@@ -269,49 +307,49 @@ function App() {
     }
   }
 
-  // Handle note click
-  const handleNoteClick = (noteId) => {
+  const handleNoteClick = useCallback((noteId) => {
     setCurrentNoteId(noteId)
     setCurrentView("note")
-  }
+  }, [])
 
-  // Handle create note
-  const handleCreateNote = () => {
+  const handleCreateNote = useCallback(() => {
     setCurrentNoteId(null)
     setCurrentView("note")
-  }
+  }, [])
 
-  // Handle back to home
-  const handleBackToHome = () => {
+  const handleBackToHome = useCallback(() => {
     setCurrentView("home")
     setCurrentNoteId(null)
     fetchNotes()
-  }
+  }, [fetchNotes])
 
-  // Handle context menu
-  const handleContextMenu = (e, noteId) => {
+  const handleContextMenu = useCallback((e, noteId) => {
     e.preventDefault()
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
       noteId,
     })
-  }
+  }, [])
 
-  // Handle long press for mobile
-  const handleLongPress = (noteId) => {
+  const handleLongPress = useCallback((noteId) => {
     setContextMenu({
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
       noteId,
     })
-  }
+  }, [])
 
-  const handleSettingsClick = () => {
-    console.log("Settings clicked")
-  }
+  const handleSettingsClick = useCallback(() => {
+    console.log("Settings clicked, showing settings page")
+    setCurrentView("settings")
+  }, [])
 
-  // Filter function for search
+  const handleBackFromSettings = useCallback(() => {
+    setCurrentView("home")
+    fetchNotes()
+  }, [fetchNotes])
+
   const filterNotes = (notes) => {
     if (!searchQuery.trim()) return notes
     return notes.filter(
@@ -321,51 +359,8 @@ function App() {
     )
   }
 
-  // Get filtered notes
   const filteredPinnedNotes = filterNotes(pinnedNotes)
   const filteredAllNotes = filterNotes(allNotes)
-
-  // Note Card Component
-  const NoteCard = ({ note, onContextMenu, onLongPress }) => {
-    let longPressTimer = null
-
-    const handleMouseDown = () => {
-      longPressTimer = setTimeout(() => onLongPress(note._id), 500)
-    }
-
-    const handleMouseUp = () => {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer)
-        longPressTimer = null
-      }
-    }
-
-    const handleClick = () => {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer)
-        longPressTimer = null
-      }
-      handleNoteClick(note._id)
-    }
-
-    return (
-      <div
-        key={note._id}
-        className="bg-neutral-800 rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer hover:bg-neutral-700 transition-colors"
-        onClick={handleClick}
-        onContextMenu={(e) => onContextMenu(e, note._id)}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleMouseDown}
-        onTouchEnd={handleMouseUp}
-      >
-        <h3 className="text-white font-medium mb-2 text-sm">{note.title}</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          {note.content.length > 100 ? `${note.content.substring(0, 100)}...` : note.content}
-        </p>
-      </div>
-    )
-  }
 
   if (loading) {
     return (
@@ -375,21 +370,20 @@ function App() {
     )
   }
 
-  // Render NotePage if in note view
   if (currentView === "note") {
     return <NotePage noteId={currentNoteId} onBack={handleBackToHome} />
   }
 
-  // Render main app (home view)
+  if (currentView === "settings") {
+    return <SettingsPage onBack={handleBackFromSettings} />
+  }
+
   return (
     <div className="min-h-screen bg-neutral-900">
-      {/* Login Modal */}
       {showLoginModal && <LoginModal onLogin={handleLogin} />}
 
-      {/* Main App - only show if logged in */}
       {isLoggedIn && (
         <>
-          {/* MODIFIED: Removed onLogout prop from Header component instance */}
           <Header onSettingsClick={handleSettingsClick} />
 
           {error && (
@@ -398,7 +392,6 @@ function App() {
             </div>
           )}
 
-          {/* Search Bar */}
           <div className="px-4 py-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -414,7 +407,6 @@ function App() {
             </div>
           </div>
 
-          {/* Pinned Notes Section */}
           <div className="px-4 py-2">
             <button
               onClick={() => setIsPinnedExpanded(!isPinnedExpanded)}
@@ -437,6 +429,7 @@ function App() {
                       note={note}
                       onContextMenu={handleContextMenu}
                       onLongPress={handleLongPress}
+                      handleNoteClick={handleNoteClick}
                     />
                   ))
                 ) : searchQuery ? (
@@ -448,12 +441,10 @@ function App() {
             )}
           </div>
 
-          {/* Divider Line */}
           <div className="mx-4 py-1">
             <hr className="border-gray-600" />
           </div>
 
-          {/* All Notes Section */}
           <div className="px-4 py-4">
             <button
               onClick={() => setIsAllNotesExpanded(!isAllNotesExpanded)}
@@ -476,6 +467,7 @@ function App() {
                       note={note}
                       onContextMenu={handleContextMenu}
                       onLongPress={handleLongPress}
+                      handleNoteClick={handleNoteClick}
                     />
                   ))
                 ) : searchQuery ? (
@@ -487,7 +479,6 @@ function App() {
             )}
           </div>
 
-          {/* Context Menu */}
           {contextMenu && (
             <ContextMenu
               x={contextMenu.x}
@@ -497,7 +488,6 @@ function App() {
             />
           )}
 
-          {/* Floating Add Button */}
           <button
             onClick={handleCreateNote}
             className="fixed bottom-4 right-4 bg-neutral-700 w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-neutral-600 transition-colors"
