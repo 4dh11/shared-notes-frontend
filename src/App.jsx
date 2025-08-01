@@ -34,8 +34,8 @@ const ThemeProvider = ({ children }) => {
         if (response.data?.wallpaper) {
           setWallpaper(response.data.wallpaper)
         }
-        if (response.data?.wallpaperDimming !== undefined) {
-          setWallpaperDimming(response.data.wallpaperDimming)
+        if (response.data?.dimLevel !== undefined) {
+          setWallpaperDimming(response.data.dimLevel)
         }
       } catch (error) {
         console.log('Could not load settings, using defaults')
@@ -195,7 +195,7 @@ const Header = ({ onSettingsClick }) => {
   const { theme } = useTheme()
   
   return (
-    <header className={`${theme === 'dark' ? 'bg-neutral-800' : 'bg-white'} p-4 shadow-sm`}>
+    <header className={`${theme === 'dark' ? 'bg-neutral-800 bg-opacity-90' : 'bg-white bg-opacity-90'} p-4 shadow-sm backdrop-blur-sm`}>
       <div className="flex justify-between items-center">
         <h1 className={`${theme === 'dark' ? 'text-white' : 'text-black'} text-xl font-bold`}>Shared Notes</h1>
         <div className="flex items-center gap-2">
@@ -265,10 +265,10 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
   return (
     <div
       key={note._id}
-      className={`rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer transition-colors ${
+      className={`rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer transition-colors backdrop-blur-sm ${
         theme === 'dark' 
-          ? 'bg-neutral-800 hover:bg-neutral-700' 
-          : 'bg-white hover:bg-gray-50 border border-gray-200'
+          ? 'bg-neutral-800 bg-opacity-90 hover:bg-neutral-700 hover:bg-opacity-90' 
+          : 'bg-white bg-opacity-90 hover:bg-gray-50 hover:bg-opacity-90 border border-gray-200'
       }`}
       onClick={handleClick}
       onContextMenu={(e) => onContextMenu(e, note._id)}
@@ -523,10 +523,10 @@ const AppContent = () => {
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 backdrop-blur-sm ${
                   theme === 'dark' 
-                    ? 'bg-neutral-800 text-white' 
-                    : 'bg-white text-black border border-gray-300'
+                    ? 'bg-neutral-800 bg-opacity-90 text-white' 
+                    : 'bg-white bg-opacity-90 text-black border border-gray-300'
                 }`}
               />
             </div>
@@ -619,10 +619,10 @@ const AppContent = () => {
 
           <button
             onClick={handleCreateNote}
-            className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
+            className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors backdrop-blur-sm ${
               theme === 'dark' 
-                ? 'bg-neutral-700 hover:bg-neutral-600' 
-                : 'bg-white hover:bg-gray-100 border border-gray-300'
+                ? 'bg-neutral-700 bg-opacity-90 hover:bg-neutral-600 hover:bg-opacity-90' 
+                : 'bg-white bg-opacity-90 hover:bg-gray-100 hover:bg-opacity-90 border border-gray-300'
             }`}
           >
             <Plus className={`h-6 w-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
