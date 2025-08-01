@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Pin, PinOff, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Undo, Redo } from 'lucide-react'
-import api from '../api' // Import your configured api instance
+import api from '../api'
+import { useTheme } from '../App'
 
 function NotePage({ noteId, onBack }) {
+  const { theme, wallpaper, wallpaperDimming } = useTheme()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isPinned, setIsPinned] = useState(false)
@@ -13,10 +15,34 @@ function NotePage({ noteId, onBack }) {
   const contentRef = useRef(null)
   const titleRef = useRef(null)
 
+  // Generate background style based on wallpaper (same as main app)
+  const getBackgroundStyle = () => {
+    if (!wallpaper) {
+      return { backgroundColor: theme === 'dark' ? '#171717' : '#f5f5f5' }
+    }
+    
+    const wallpaperUrl = wallpaper.startsWith('http') 
+      ? wallpaper 
+      : `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${wallpaper}`
+    
+    return {
+      backgroundImage: `linear-gradient(rgba(0,0,0,${wallpaperDimming}), rgba(0,0,0,${wallpaperDimming})), url(${wallpaperUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed'
+    }
+  }
+
   // Load existing note if editing
   useEffect(() => {
     if (noteId) {
       loadNote()
+    } else {
+      // For new notes, clear the content editor
+      if (contentRef.current) {
+        contentRef.current.innerHTML = ''
+      }
     }
   }, [noteId])
 
@@ -30,9 +56,15 @@ function NotePage({ noteId, onBack }) {
       setContent(note.content)
       setIsPinned(note.pinned)
       
-      // Set content in contentEditable div
+      // Set content in contentEditable div with proper HTML formatting
       if (contentRef.current) {
-        contentRef.current.innerHTML = note.content.replace(/\n/g, '<br>')
+        // Convert line breaks to HTML and preserve formatting
+        const htmlContent = note.content
+          .replace(/\n/g, '<br>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        
+        contentRef.current.innerHTML = htmlContent
       }
     } catch (err) {
       setError('Failed to load note')
@@ -45,7 +77,22 @@ function NotePage({ noteId, onBack }) {
   // Handle content changes in contentEditable div
   const handleContentChange = () => {
     if (contentRef.current) {
-      setContent(contentRef.current.innerHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''))
+      // Convert HTML back to plain text while preserving some formatting
+      let textContent = contentRef.current.innerHTML
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<p>/gi, '')
+        .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+        .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+        .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+        .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+        .replace(/<[^>]*>/g, '') // Remove any other HTML tags
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+      
+      setContent(textContent)
     }
   }
 
@@ -53,17 +100,19 @@ function NotePage({ noteId, onBack }) {
   const applyFormat = (command, value = null) => {
     document.execCommand(command, false, value)
     contentRef.current?.focus()
+    // Update content state after formatting
+    setTimeout(() => handleContentChange(), 10)
   }
 
   // Undo/Redo functions
   const handleUndo = () => {
     document.execCommand('undo')
-    handleContentChange()
+    setTimeout(() => handleContentChange(), 10)
   }
 
   const handleRedo = () => {
     document.execCommand('redo')
-    handleContentChange()
+    setTimeout(() => handleContentChange(), 10)
   }
 
   // Save note
@@ -105,19 +154,35 @@ function NotePage({ noteId, onBack }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-white">Loading note...</div>
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={getBackgroundStyle()}
+      >
+        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'} bg-black bg-opacity-50 px-4 py-2 rounded-lg`}>
+          Loading note...
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 flex flex-col">
+    <div 
+      className="min-h-screen flex flex-col"
+      style={getBackgroundStyle()}
+    >
       {/* Top Bar */}
-      <header className="bg-neutral-800 p-4 flex items-center justify-between border-b border-neutral-700">
+      <header className={`p-4 flex items-center justify-between border-b ${
+        theme === 'dark' 
+          ? 'bg-neutral-800 bg-opacity-90 border-neutral-700' 
+          : 'bg-white bg-opacity-90 border-gray-300'
+      }`}>
         <button
           onClick={onBack}
-          className="text-white hover:text-gray-300 p-2"
+          className={`p-2 rounded-lg ${
+            theme === 'dark' 
+              ? 'text-white hover:text-gray-300 hover:bg-neutral-700' 
+              : 'text-black hover:text-gray-700 hover:bg-gray-100'
+          }`}
         >
           <ArrowLeft className="h-6 w-6" />
         </button>
@@ -125,7 +190,13 @@ function NotePage({ noteId, onBack }) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsPinned(!isPinned)}
-            className={`p-2 rounded ${isPinned ? 'text-yellow-500' : 'text-gray-400 hover:text-white'}`}
+            className={`p-2 rounded ${
+              isPinned 
+                ? 'text-yellow-500' 
+                : theme === 'dark' 
+                  ? 'text-gray-400 hover:text-white hover:bg-neutral-700' 
+                  : 'text-gray-500 hover:text-black hover:bg-gray-100'
+            }`}
           >
             {isPinned ? <Pin className="h-6 w-6" /> : <PinOff className="h-6 w-6" />}
           </button>
@@ -133,7 +204,11 @@ function NotePage({ noteId, onBack }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              theme === 'dark'
+                ? 'bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white'
+                : 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-black'
+            } disabled:cursor-not-allowed`}
           >
             {saving ? 'Saving...' : 'Done'}
           </button>
@@ -155,17 +230,29 @@ function NotePage({ noteId, onBack }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Title..."
-          className="w-full bg-transparent text-white text-2xl font-bold placeholder-gray-500 focus:outline-none"
+          className={`w-full bg-transparent text-2xl font-bold focus:outline-none ${
+            theme === 'dark' 
+              ? 'text-white placeholder-gray-500' 
+              : 'text-black placeholder-gray-600'
+          }`}
         />
       </div>
 
       {/* Formatting Toolbar */}
       <div className="px-4 pb-4">
-        <div className="flex items-center gap-2 p-2 bg-neutral-800 rounded-lg border border-neutral-700">
+        <div className={`flex items-center gap-2 p-2 rounded-lg border ${
+          theme === 'dark'
+            ? 'bg-neutral-800 bg-opacity-90 border-neutral-700'
+            : 'bg-white bg-opacity-90 border-gray-300'
+        }`}>
           {/* Text Formatting */}
           <button
             onClick={() => applyFormat('bold')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Bold"
           >
             <Bold className="h-4 w-4" />
@@ -173,18 +260,26 @@ function NotePage({ noteId, onBack }) {
           
           <button
             onClick={() => applyFormat('italic')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Italic"
           >
             <Italic className="h-4 w-4" />
           </button>
 
-          <div className="w-px h-6 bg-neutral-600 mx-1"></div>
+          <div className={`w-px h-6 mx-1 ${theme === 'dark' ? 'bg-neutral-600' : 'bg-gray-300'}`}></div>
 
           {/* Alignment */}
           <button
             onClick={() => applyFormat('justifyLeft')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Align Left"
           >
             <AlignLeft className="h-4 w-4" />
@@ -192,7 +287,11 @@ function NotePage({ noteId, onBack }) {
           
           <button
             onClick={() => applyFormat('justifyCenter')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Align Center"
           >
             <AlignCenter className="h-4 w-4" />
@@ -200,18 +299,26 @@ function NotePage({ noteId, onBack }) {
           
           <button
             onClick={() => applyFormat('justifyRight')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Align Right"
           >
             <AlignRight className="h-4 w-4" />
           </button>
 
-          <div className="w-px h-6 bg-neutral-600 mx-1"></div>
+          <div className={`w-px h-6 mx-1 ${theme === 'dark' ? 'bg-neutral-600' : 'bg-gray-300'}`}></div>
 
           {/* Undo/Redo */}
           <button
             onClick={handleUndo}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Undo"
           >
             <Undo className="h-4 w-4" />
@@ -219,7 +326,11 @@ function NotePage({ noteId, onBack }) {
           
           <button
             onClick={handleRedo}
-            className="p-2 text-gray-400 hover:text-white hover:bg-neutral-700 rounded transition-colors"
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
             title="Redo"
           >
             <Redo className="h-4 w-4" />
@@ -233,19 +344,48 @@ function NotePage({ noteId, onBack }) {
           ref={contentRef}
           contentEditable={true}
           onInput={handleContentChange}
-          className="w-full h-full min-h-96 bg-transparent text-white text-base placeholder-gray-500 focus:outline-none resize-none leading-relaxed"
-          style={{ wordWrap: 'break-word' }}
+          onBlur={handleContentChange}
+          className={`w-full h-full min-h-96 bg-transparent text-base focus:outline-none resize-none leading-relaxed ${
+            theme === 'dark' ? 'text-white' : 'text-black'
+          }`}
+          style={{ 
+            wordWrap: 'break-word',
+            minHeight: '400px'
+          }}
           suppressContentEditableWarning={true}
           data-placeholder="Start typing..."
         />
       </div>
 
-      {/* Custom CSS for placeholder */}
+      {/* Custom CSS for placeholder and better styling */}
       <style jsx>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
-          color: #6b7280;
+          color: ${theme === 'dark' ? '#6b7280' : '#9ca3af'};
           font-style: italic;
+        }
+        
+        [contenteditable]:focus {
+          outline: none;
+        }
+        
+        /* Ensure proper text selection styling */
+        [contenteditable]::selection {
+          background-color: ${theme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'};
+        }
+        
+        /* Style for formatted text within the editor */
+        [contenteditable] strong {
+          font-weight: bold;
+        }
+        
+        [contenteditable] em {
+          font-style: italic;
+        }
+        
+        /* Improve readability with better line spacing */
+        [contenteditable] {
+          line-height: 1.6;
         }
       `}</style>
     </div>

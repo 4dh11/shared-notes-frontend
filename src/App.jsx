@@ -20,28 +20,51 @@ export const useTheme = () => {
 
 const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState('dark')
+  const [wallpaper, setWallpaper] = useState('')
+  const [wallpaperDimming, setWallpaperDimming] = useState(0.3)
 
-  // Load theme from API on app start
+  // Load theme and wallpaper from API on app start
   useEffect(() => {
-    const loadTheme = async () => {
+    const loadSettings = async () => {
       try {
         const response = await api.get('/api/settings')
         if (response.data?.theme) {
           setTheme(response.data.theme)
         }
+        if (response.data?.wallpaper) {
+          setWallpaper(response.data.wallpaper)
+        }
+        if (response.data?.wallpaperDimming !== undefined) {
+          setWallpaperDimming(response.data.wallpaperDimming)
+        }
       } catch (error) {
-        console.log('Could not load theme from settings, using default')
+        console.log('Could not load settings, using defaults')
       }
     }
-    loadTheme()
+    loadSettings()
   }, [])
 
   const updateTheme = useCallback((newTheme) => {
     setTheme(newTheme)
   }, [])
 
+  const updateWallpaper = useCallback((newWallpaper) => {
+    setWallpaper(newWallpaper)
+  }, [])
+
+  const updateWallpaperDimming = useCallback((newDimming) => {
+    setWallpaperDimming(newDimming)
+  }, [])
+
   return (
-    <ThemeContext.Provider value={{ theme, updateTheme }}>
+    <ThemeContext.Provider value={{ 
+      theme, 
+      updateTheme, 
+      wallpaper, 
+      updateWallpaper, 
+      wallpaperDimming, 
+      updateWallpaperDimming 
+    }}>
       {children}
     </ThemeContext.Provider>
   )
@@ -263,7 +286,7 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
 }
 
 const AppContent = () => {
-  const { theme } = useTheme()
+  const { theme, wallpaper, wallpaperDimming } = useTheme()
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(true)
   const [isAllNotesExpanded, setIsAllNotesExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -430,13 +453,37 @@ const AppContent = () => {
     )
   }
 
+  // Generate background style based on wallpaper
+  const getBackgroundStyle = () => {
+    if (!wallpaper) {
+      return { backgroundColor: theme === 'dark' ? '#171717' : '#f5f5f5' }
+    }
+    
+    const wallpaperUrl = wallpaper.startsWith('http') 
+      ? wallpaper 
+      : `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${wallpaper}`
+    
+    return {
+      backgroundImage: `linear-gradient(rgba(0,0,0,${wallpaperDimming}), rgba(0,0,0,${wallpaperDimming})), url(${wallpaperUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed'
+    }
+  }
+
   const filteredPinnedNotes = filterNotes(pinnedNotes)
   const filteredAllNotes = filterNotes(allNotes)
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'} flex items-center justify-center`}>
-        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'}`}>Loading notes...</div>
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={getBackgroundStyle()}
+      >
+        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'} bg-black bg-opacity-50 px-4 py-2 rounded-lg`}>
+          Loading notes...
+        </div>
       </div>
     )
   }
@@ -450,7 +497,10 @@ const AppContent = () => {
   }
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'}`}>
+    <div 
+      className="min-h-screen"
+      style={getBackgroundStyle()}
+    >
       {showLoginModal && <LoginModal onLogin={handleLogin} />}
 
       {isLoggedIn && (

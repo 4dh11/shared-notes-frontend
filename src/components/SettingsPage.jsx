@@ -3,14 +3,47 @@ import { ChevronLeft, ChevronDown, ChevronRight, Eye, EyeOff, Check, Upload } fr
 import api from '../api'
 import { useTheme } from '../App'
 
-// Hardcoded wallpaper presets
-const WALLPAPER_PRESETS = [
-  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=300&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=200&fit=crop'
+// Add CSS for custom slider
+const sliderStyles = `
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #d1d5db;
+    outline: none;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #eab308;
+    cursor: pointer;
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #eab308;
+    cursor: pointer;
+    border: none;
+  }
+`
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style")
+  styleSheet.innerText = sliderStyles
+  document.head.appendChild(styleSheet)
+}
+
+// Backend wallpaper presets - these will be loaded from the backend
+const BACKEND_WALLPAPER_PRESETS = [
+  '/uploads/wallpapers/eat cat.jpg',
+  '/uploads/wallpapers/sleep cat.jpg', 
+  '/uploads/wallpapers/tuxedo and orange.jpg'
 ]
 
 const ThemeSection = ({ theme, onThemeChange }) => {
@@ -42,9 +75,25 @@ const ThemeSection = ({ theme, onThemeChange }) => {
   )
 }
 
-const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploadedImage, onImageUpload }) => {
+const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploadedImage, onImageUpload, wallpaperDimming, onDimmingChange }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [availablePresets, setAvailablePresets] = useState([])
+
+  // Load available presets from backend
+  useEffect(() => {
+    const loadPresets = async () => {
+      try {
+        const response = await api.get('/api/settings/wallpapers')
+        setAvailablePresets(response.data.presets || BACKEND_WALLPAPER_PRESETS)
+      } catch (error) {
+        console.error('Error loading wallpaper presets:', error)
+        // Fallback to hardcoded paths
+        setAvailablePresets(BACKEND_WALLPAPER_PRESETS)
+      }
+    }
+    loadPresets()
+  }, [])
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0]
@@ -78,19 +127,43 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full text-left"
       >
-        <h3 className="text-yellow-500 text-lg font-semibold">Wallpaper Presets</h3>
+        <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>Wallpaper Presets</h3>
         {isExpanded ? (
-          <ChevronDown className="h-5 w-5 text-yellow-500" />
+          <ChevronDown className={`h-5 w-5 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
         ) : (
-          <ChevronRight className="h-5 w-5 text-yellow-500" />
+          <ChevronRight className={`h-5 w-5 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
         )}
       </button>
 
       {isExpanded && (
         <div className="mt-4 space-y-4">
+          {/* Dimming Control */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                Wallpaper Dimming
+              </label>
+              <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                {Math.round(wallpaperDimming * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.8"
+              step="0.1"
+              value={wallpaperDimming}
+              onChange={(e) => onDimmingChange(parseFloat(e.target.value))}
+              className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+              Adjust dimming to improve text visibility over wallpaper
+            </p>
+          </div>
+
           {/* Preset thumbnails */}
           <div className="grid grid-cols-3 gap-3 overflow-x-auto">
-            {WALLPAPER_PRESETS.map((preset, index) => (
+            {availablePresets.map((preset, index) => (
               <button
                 key={index}
                 onClick={() => onWallpaperChange(preset)}
@@ -101,9 +174,13 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
                 }`}
               >
                 <img
-                  src={preset}
+                  src={`${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${preset}`}
                   alt={`Wallpaper preset ${index + 1}`}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to a placeholder if image fails to load
+                    e.target.src = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="#374151"/><text x="150" y="100" text-anchor="middle" fill="white" font-size="14">Preset ' + (index + 1) + '</text></svg>')}`
+                  }}
                 />
                 {selectedWallpaper === preset && (
                   <div className="absolute inset-0 bg-yellow-500 bg-opacity-20 flex items-center justify-center">
@@ -167,7 +244,7 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
   )
 }
 
-const PrivacySection = ({ theme, password }) => {
+const PrivacySection = ({ theme, password, passwordError }) => {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
@@ -190,20 +267,22 @@ const PrivacySection = ({ theme, password }) => {
                 ? 'bg-neutral-700 border-neutral-600 text-white'
                 : 'bg-gray-50 border-gray-300 text-black'
             }`}
-            placeholder="Loading..."
+            placeholder={passwordError || (password ? '' : 'Loading...')}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-              theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'
-            }`}
-          >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-          </button>
+          {password && (
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'
+              }`}
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          )}
         </div>
         <p className={`mt-2 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
-          This password is used to access your shared notes
+          {passwordError || 'This password is used to access your shared notes'}
         </p>
       </div>
     </div>
@@ -213,11 +292,13 @@ const PrivacySection = ({ theme, password }) => {
 const SettingsPage = ({ onBack }) => {
   const { theme, updateTheme } = useTheme()
   const [selectedWallpaper, setSelectedWallpaper] = useState('')
+  const [wallpaperDimming, setWallpaperDimming] = useState(0.3)
   const [uploadedImage, setUploadedImage] = useState(null)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState({})
+  const [passwordError, setPasswordError] = useState('')
 
   // Fetch current settings on load
   useEffect(() => {
@@ -248,6 +329,11 @@ const SettingsPage = ({ onBack }) => {
   const handleWallpaperChange = (wallpaper) => {
     setSelectedWallpaper(wallpaper)
     setPendingChanges(prev => ({ ...prev, wallpaper }))
+  }
+
+  const handleDimmingChange = (dimming) => {
+    setWallpaperDimming(dimming)
+    setPendingChanges(prev => ({ ...prev, wallpaperDimming: dimming }))
   }
 
   const handleImageUpload = (url, file) => {
@@ -306,9 +392,11 @@ const SettingsPage = ({ onBack }) => {
           onWallpaperChange={handleWallpaperChange}
           uploadedImage={uploadedImage}
           onImageUpload={handleImageUpload}
+          wallpaperDimming={wallpaperDimming}
+          onDimmingChange={handleDimmingChange}
         />
         
-        <PrivacySection theme={theme} password={password} />
+        <PrivacySection theme={theme} password={password} passwordError={passwordError} />
       </div>
 
       {/* Floating Save Button */}
