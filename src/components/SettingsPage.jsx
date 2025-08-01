@@ -41,9 +41,9 @@ if (typeof document !== 'undefined') {
 
 // Backend wallpaper presets - actual files from your backend
 const BACKEND_WALLPAPER_PRESETS = [
-  { name: 'Eat Cat', path: '/uploads/wallpapers/eat.cat.jpg' },
-  { name: 'Sleep Cat', path: '/uploads/wallpapers/sleep.cat.jpg' },
-  { name: 'Tuxedo and Orange', path: '/uploads/wallpapers/tuxedo.and.orange.jpg' }
+  { name: 'Eat Cat', path: '/uploads/wallpapers/eat%20cat.jpg' },
+  { name: 'Sleep Cat', path: '/uploads/wallpapers/sleep%20cat.jpg' },
+  { name: 'Tuxedo and Orange', path: '/uploads/wallpapers/tuxedo%20and%20orange.jpg' }
 ]
 
 const ThemeSection = ({ theme, onThemeChange }) => {
