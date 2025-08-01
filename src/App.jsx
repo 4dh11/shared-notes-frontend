@@ -13,24 +13,24 @@ const ThemeContext = createContext()
 export const useTheme = () => {
   const context = useContext(ThemeContext)
   if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider')
+    throw new Error("useTheme must be used within a ThemeProvider")
   }
   return context
 }
 
 const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('dark')
+  const [theme, setTheme] = useState("dark")
 
   // Load theme from API on app start
   useEffect(() => {
     const loadTheme = async () => {
       try {
-        const response = await api.get('/api/settings')
+        const response = await api.get("/api/settings")
         if (response.data?.theme) {
           setTheme(response.data.theme)
         }
       } catch (error) {
-        console.log('Could not load theme from settings, using default')
+        console.log("Could not load theme from settings, using default")
       }
     }
     loadTheme()
@@ -40,11 +40,7 @@ const ThemeProvider = ({ children }) => {
     setTheme(newTheme)
   }, [])
 
-  return (
-    <ThemeContext.Provider value={{ theme, updateTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={{ theme, updateTheme }}>{children}</ThemeContext.Provider>
 }
 
 const LoginModal = ({ onLogin }) => {
@@ -107,8 +103,12 @@ const LoginModal = ({ onLogin }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className={`${theme === 'dark' ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-gray-300'} rounded-xl p-6 w-full max-w-md mx-4 border`}>
-        <h2 className={`${theme === 'dark' ? 'text-white' : 'text-black'} text-2xl font-bold mb-6 text-center`}>Access Shared Notes</h2>
+      <div
+        className={`${theme === "dark" ? "bg-neutral-800 border-neutral-700" : "bg-white border-gray-300"} rounded-xl p-6 w-full max-w-md mx-4 border`}
+      >
+        <h2 className={`${theme === "dark" ? "text-white" : "text-black"} text-2xl font-bold mb-6 text-center`}>
+          Access Shared Notes
+        </h2>
 
         {error && (
           <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>
@@ -116,14 +116,16 @@ const LoginModal = ({ onLogin }) => {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className={`block ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-2`}>Password</label>
+            <label className={`block ${theme === "dark" ? "text-gray-300" : "text-gray-700"} text-sm font-medium mb-2`}>
+              Password
+            </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`w-full px-4 py-3 pr-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-yellow-500 ${
-                  theme === 'dark' ? 'bg-neutral-700 text-white' : 'bg-white text-black'
+                  theme === "dark" ? "bg-neutral-700 text-white" : "bg-white text-black"
                 }`}
                 placeholder="Enter password"
                 disabled={loading}
@@ -133,7 +135,7 @@ const LoginModal = ({ onLogin }) => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                  theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
+                  theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
                 }`}
                 disabled={loading}
               >
@@ -146,9 +148,9 @@ const LoginModal = ({ onLogin }) => {
             type="submit"
             disabled={loading}
             className={`w-full font-medium py-3 rounded-lg transition-colors ${
-              theme === 'dark' 
-                ? 'bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white' 
-                : 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-black'
+              theme === "dark"
+                ? "bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white"
+                : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-black"
             } disabled:cursor-not-allowed`}
           >
             {loading ? "Accessing..." : "Access Notes"}
@@ -156,9 +158,11 @@ const LoginModal = ({ onLogin }) => {
         </form>
 
         {process.env.NODE_ENV === "development" && (
-          <div className={`mt-4 p-2 rounded text-xs ${
-            theme === 'dark' ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'
-          }`}>
+          <div
+            className={`mt-4 p-2 rounded text-xs ${
+              theme === "dark" ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-gray-600"
+            }`}
+          >
             <div>Backend URL: https://shared-notes-backend.onrender.com</div>
             <div>Login endpoint: /api/auth/login</div>
           </div>
@@ -170,16 +174,16 @@ const LoginModal = ({ onLogin }) => {
 
 const Header = ({ onSettingsClick }) => {
   const { theme } = useTheme()
-  
+
   return (
-    <header className={`${theme === 'dark' ? 'bg-neutral-800' : 'bg-white'} p-4 shadow-sm`}>
+    <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}>
       <div className="flex justify-between items-center">
-        <h1 className={`${theme === 'dark' ? 'text-white' : 'text-black'} text-xl font-bold`}>Shared Notes</h1>
+        <h1 className={`${theme === "dark" ? "text-white" : "text-black"} text-xl font-bold`}>Shared Notes</h1>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={onSettingsClick} 
+          <button
+            onClick={onSettingsClick}
             className={`p-2 rounded-lg ${
-              theme === 'dark' ? 'text-white hover:bg-neutral-700' : 'text-black hover:bg-gray-100'
+              theme === "dark" ? "text-white hover:bg-neutral-700" : "text-black hover:bg-gray-100"
             }`}
           >
             <Settings className="h-6 w-6" />
@@ -192,7 +196,7 @@ const Header = ({ onSettingsClick }) => {
 
 const ContextMenu = ({ x, y, onDelete, onClose }) => {
   const { theme } = useTheme()
-  
+
   useEffect(() => {
     const handleClickOutside = () => onClose()
     document.addEventListener("click", handleClickOutside)
@@ -201,13 +205,13 @@ const ContextMenu = ({ x, y, onDelete, onClose }) => {
 
   return (
     <div
-      className={`fixed ${theme === 'dark' ? 'bg-neutral-700 border-neutral-600' : 'bg-white border-gray-300'} border rounded-lg shadow-lg z-50 py-1`}
+      className={`fixed ${theme === "dark" ? "bg-neutral-700 border-neutral-600" : "bg-white border-gray-300"} border rounded-lg shadow-lg z-50 py-1`}
       style={{ left: x, top: y }}
     >
-      <button 
-        onClick={onDelete} 
+      <button
+        onClick={onDelete}
         className={`w-full px-4 py-2 text-left text-red-400 text-sm ${
-          theme === 'dark' ? 'hover:bg-neutral-600' : 'hover:bg-gray-100'
+          theme === "dark" ? "hover:bg-neutral-600" : "hover:bg-gray-100"
         }`}
       >
         Delete
@@ -243,9 +247,7 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
     <div
       key={note._id}
       className={`rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer transition-colors ${
-        theme === 'dark' 
-          ? 'bg-neutral-800 hover:bg-neutral-700' 
-          : 'bg-white hover:bg-gray-50 border border-gray-200'
+        theme === "dark" ? "bg-neutral-800 hover:bg-neutral-700" : "bg-white hover:bg-gray-50 border border-gray-200"
       }`}
       onClick={handleClick}
       onContextMenu={(e) => onContextMenu(e, note._id)}
@@ -254,8 +256,8 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
       onTouchStart={handleMouseDown}
       onTouchEnd={handleMouseUp}
     >
-      <h3 className={`${theme === 'dark' ? 'text-white' : 'text-black'} font-medium mb-2 text-sm`}>{note.title}</h3>
-      <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-xs leading-relaxed`}>
+      <h3 className={`${theme === "dark" ? "text-white" : "text-black"} font-medium mb-2 text-sm`}>{note.title}</h3>
+      <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-xs leading-relaxed`}>
         {note.content.length > 100 ? `${note.content.substring(0, 100)}...` : note.content}
       </p>
     </div>
@@ -435,8 +437,10 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'} flex items-center justify-center`}>
-        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'}`}>Loading notes...</div>
+      <div
+        className={`min-h-screen ${theme === "dark" ? "bg-neutral-900" : "bg-gray-100"} flex items-center justify-center`}
+      >
+        <div className={`${theme === "dark" ? "text-white" : "text-black"}`}>Loading notes...</div>
       </div>
     )
   }
@@ -450,7 +454,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'}`}>
+    <div className={`min-h-screen ${theme === "dark" ? "bg-neutral-900" : "bg-gray-100"}`}>
       {showLoginModal && <LoginModal onLogin={handleLogin} />}
 
       {isLoggedIn && (
@@ -466,7 +470,7 @@ const AppContent = () => {
           <div className="px-4 py-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className={`h-5 w-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Search className={`h-5 w-5 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
               </div>
               <input
                 type="text"
@@ -474,9 +478,7 @@ const AppContent = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-                  theme === 'dark' 
-                    ? 'bg-neutral-800 text-white' 
-                    : 'bg-white text-black border border-gray-300'
+                  theme === "dark" ? "bg-neutral-800 text-white" : "bg-white text-black border border-gray-300"
                 }`}
               />
             </div>
@@ -486,7 +488,7 @@ const AppContent = () => {
             <button
               onClick={() => setIsPinnedExpanded(!isPinnedExpanded)}
               className={`flex items-center justify-between w-full text-lg font-medium mb-3 ${
-                theme === 'dark' ? 'text-white' : 'text-black'
+                theme === "dark" ? "text-white" : "text-black"
               }`}
             >
               <span>Pinned</span>
@@ -510,23 +512,27 @@ const AppContent = () => {
                     />
                   ))
                 ) : searchQuery ? (
-                  <div className={`text-sm w-full ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No pinned notes found</div>
+                  <div className={`text-sm w-full ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    No pinned notes found
+                  </div>
                 ) : (
-                  <div className={`text-sm w-full ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No pinned notes</div>
+                  <div className={`text-sm w-full ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    No pinned notes
+                  </div>
                 )}
               </div>
             )}
           </div>
 
           <div className="mx-4 py-1">
-            <hr className={`${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'}`} />
+            <hr className={`${theme === "dark" ? "border-gray-600" : "border-gray-300"}`} />
           </div>
 
           <div className="px-4 py-4">
             <button
               onClick={() => setIsAllNotesExpanded(!isAllNotesExpanded)}
               className={`flex items-center justify-between w-full text-lg font-medium mb-3 ${
-                theme === 'dark' ? 'text-white' : 'text-black'
+                theme === "dark" ? "text-white" : "text-black"
               }`}
             >
               <span>Notes</span>
@@ -550,9 +556,13 @@ const AppContent = () => {
                     />
                   ))
                 ) : searchQuery ? (
-                  <div className={`text-sm w-full ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No notes found</div>
+                  <div className={`text-sm w-full ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    No notes found
+                  </div>
                 ) : (
-                  <div className={`text-sm w-full ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No notes yet</div>
+                  <div className={`text-sm w-full ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    No notes yet
+                  </div>
                 )}
               </div>
             )}
@@ -570,12 +580,12 @@ const AppContent = () => {
           <button
             onClick={handleCreateNote}
             className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
-              theme === 'dark' 
-                ? 'bg-neutral-700 hover:bg-neutral-600' 
-                : 'bg-white hover:bg-gray-100 border border-gray-300'
+              theme === "dark"
+                ? "bg-neutral-700 hover:bg-neutral-600"
+                : "bg-white hover:bg-gray-100 border border-gray-300"
             }`}
           >
-            <Plus className={`h-6 w-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
+            <Plus className={`h-6 w-6 ${theme === "dark" ? "text-white" : "text-black"}`} />
           </button>
         </>
       )}
