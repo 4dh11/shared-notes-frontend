@@ -39,11 +39,11 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet)
 }
 
-// Backend wallpaper presets - these will be loaded from the backend
+// Backend wallpaper presets - actual files from your backend
 const BACKEND_WALLPAPER_PRESETS = [
-  '/uploads/wallpapers/eat cat.jpg',
-  '/uploads/wallpapers/sleep cat.jpg', 
-  '/uploads/wallpapers/tuxedo and orange.jpg'
+  { name: 'Eat Cat', path: '/uploads/wallpapers/eat.cat.jpg' },
+  { name: 'Sleep Cat', path: '/uploads/wallpapers/sleep.cat.jpg' },
+  { name: 'Tuxedo and Orange', path: '/uploads/wallpapers/tuxedo.and.orange.jpg' }
 ]
 
 const ThemeSection = ({ theme, onThemeChange }) => {
@@ -78,22 +78,28 @@ const ThemeSection = ({ theme, onThemeChange }) => {
 const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploadedImage, onImageUpload, wallpaperDimming, onDimmingChange }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [availablePresets, setAvailablePresets] = useState([])
+  const [availablePresets, setAvailablePresets] = useState(BACKEND_WALLPAPER_PRESETS)
+  const [imageLoadErrors, setImageLoadErrors] = useState({})
 
-  // Load available presets from backend
+  // Load available presets from backend (optional - fallback to hardcoded)
   useEffect(() => {
     const loadPresets = async () => {
       try {
         const response = await api.get('/api/settings/wallpapers')
-        setAvailablePresets(response.data.presets || BACKEND_WALLPAPER_PRESETS)
+        if (response.data?.presets) {
+          setAvailablePresets(response.data.presets)
+        }
       } catch (error) {
-        console.error('Error loading wallpaper presets:', error)
-        // Fallback to hardcoded paths
-        setAvailablePresets(BACKEND_WALLPAPER_PRESETS)
+        console.log('Using default wallpaper presets')
+        // Keep using BACKEND_WALLPAPER_PRESETS as fallback
       }
     }
     loadPresets()
   }, [])
+
+  const handleImageError = (presetPath) => {
+    setImageLoadErrors(prev => ({ ...prev, [presetPath]: true }))
+  }
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0]
@@ -137,6 +143,25 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
 
       {isExpanded && (
         <div className="mt-4 space-y-4">
+          {/* Remove Wallpaper Option */}
+          <div>
+            <button
+              onClick={() => onWallpaperChange('')}
+              className={`w-full p-3 rounded-lg border-2 transition-all text-center ${
+                !selectedWallpaper
+                  ? 'border-yellow-500 ring-2 ring-yellow-500 ring-opacity-50'
+                  : theme === 'dark' ? 'border-neutral-600 hover:border-neutral-500' : 'border-gray-300 hover:border-gray-400'
+              } ${theme === 'dark' ? 'bg-neutral-700' : 'bg-gray-100'}`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                {!selectedWallpaper && <Check className="h-5 w-5 text-yellow-500" />}
+                <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                  No Wallpaper
+                </span>
+              </div>
+            </button>
+          </div>
+
           {/* Dimming Control */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -162,33 +187,48 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
           </div>
 
           {/* Preset thumbnails */}
-          <div className="grid grid-cols-3 gap-3 overflow-x-auto">
-            {availablePresets.map((preset, index) => (
-              <button
-                key={index}
-                onClick={() => onWallpaperChange(preset)}
-                className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
-                  selectedWallpaper === preset
-                    ? 'border-yellow-500 ring-2 ring-yellow-500 ring-opacity-50'
-                    : theme === 'dark' ? 'border-neutral-600 hover:border-neutral-500' : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <img
-                  src={`${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${preset}`}
-                  alt={`Wallpaper preset ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to a placeholder if image fails to load
-                    e.target.src = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="#374151"/><text x="150" y="100" text-anchor="middle" fill="white" font-size="14">Preset ' + (index + 1) + '</text></svg>')}`
-                  }}
-                />
-                {selectedWallpaper === preset && (
-                  <div className="absolute inset-0 bg-yellow-500 bg-opacity-20 flex items-center justify-center">
-                    <Check className="h-6 w-6 text-yellow-500" />
-                  </div>
-                )}
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-3">
+            {availablePresets.map((preset, index) => {
+              const presetPath = typeof preset === 'string' ? preset : preset.path
+              const presetName = typeof preset === 'string' ? `Preset ${index + 1}` : preset.name
+              const fullUrl = `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${presetPath}`
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => onWallpaperChange(presetPath)}
+                  className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                    selectedWallpaper === presetPath
+                      ? 'border-yellow-500 ring-2 ring-yellow-500 ring-opacity-50'
+                      : theme === 'dark' ? 'border-neutral-600 hover:border-neutral-500' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  {!imageLoadErrors[presetPath] ? (
+                    <img
+                      src={fullUrl}
+                      alt={presetName}
+                      className="w-full h-full object-cover"
+                      onError={() => handleImageError(presetPath)}
+                      onLoad={() => console.log(`Loaded: ${presetName}`)}
+                    />
+                  ) : (
+                    <div className={`w-full h-full flex items-center justify-center ${
+                      theme === 'dark' ? 'bg-neutral-700 text-gray-400' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      <div className="text-center">
+                        <div className="text-xs font-medium">{presetName}</div>
+                        <div className="text-xs opacity-75">Failed to load</div>
+                      </div>
+                    </div>
+                  )}
+                  {selectedWallpaper === presetPath && (
+                    <div className="absolute inset-0 bg-yellow-500 bg-opacity-20 flex items-center justify-center">
+                      <Check className="h-6 w-6 text-yellow-500" />
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           {/* File upload */}
@@ -267,7 +307,7 @@ const PrivacySection = ({ theme, password, passwordError }) => {
                 ? 'bg-neutral-700 border-neutral-600 text-white'
                 : 'bg-gray-50 border-gray-300 text-black'
             }`}
-            placeholder={passwordError || (password ? '' : 'Loading...')}
+            placeholder={passwordError ? 'Not available' : (password ? '' : 'Loading...')}
           />
           {password && (
             <button
@@ -281,7 +321,11 @@ const PrivacySection = ({ theme, password, passwordError }) => {
             </button>
           )}
         </div>
-        <p className={`mt-2 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+        <p className={`mt-2 text-xs ${
+          passwordError 
+            ? 'text-yellow-500' 
+            : theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
+        }`}>
           {passwordError || 'This password is used to access your shared notes'}
         </p>
       </div>
