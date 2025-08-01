@@ -39,6 +39,13 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet)
 }
 
+// Backend wallpaper presets - actual files from your backend
+const BACKEND_WALLPAPER_PRESETS = [
+  { name: 'Eat Cat', path: '/uploads/wallpapers/eat%20cat.jpg' },
+  { name: 'Sleep Cat', path: '/uploads/wallpapers/sleep%20cat.jpg' },
+  { name: 'Tuxedo and Orange', path: '/uploads/wallpapers/tuxedo%20and%20orange.jpg' }
+]
+
 const ThemeSection = ({ theme, onThemeChange }) => {
   return (
     <div className={`${theme === 'dark' ? 'bg-neutral-800' : 'bg-white'} rounded-xl p-6 shadow-lg`}>
@@ -71,20 +78,20 @@ const ThemeSection = ({ theme, onThemeChange }) => {
 const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploadedImage, onImageUpload, wallpaperDimming, onDimmingChange }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [availablePresets, setAvailablePresets] = useState([])
+  const [availablePresets, setAvailablePresets] = useState(BACKEND_WALLPAPER_PRESETS)
   const [imageLoadErrors, setImageLoadErrors] = useState({})
 
-  // Load available presets from backend
+  // Load available presets from backend (optional - fallback to hardcoded)
   useEffect(() => {
     const loadPresets = async () => {
       try {
         const response = await api.get('/api/settings/wallpapers')
-        if (response.data?.wallpaperPresets) {
-          setAvailablePresets(response.data.wallpaperPresets)
+        if (response.data?.presets) {
+          setAvailablePresets(response.data.presets)
         }
       } catch (error) {
-        console.log('No wallpaper presets available or failed to load')
-        setAvailablePresets([])
+        console.log('Using default wallpaper presets')
+        // Keep using BACKEND_WALLPAPER_PRESETS as fallback
       }
     }
     loadPresets()
@@ -103,15 +110,15 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
       const formData = new FormData()
       formData.append('wallpaper', file)
 
-      const response = await api.post('/api/settings/upload-wallpaper', formData, {
+      const response = await api.post('/api/settings/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
-      if (response.data.path) {
-        onImageUpload(response.data.path, file)
-        onWallpaperChange(response.data.path)
+      if (response.data.url) {
+        onImageUpload(response.data.url, file)
+        onWallpaperChange(response.data.url)
       }
     } catch (error) {
       console.error('Error uploading wallpaper:', error)
@@ -180,50 +187,49 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
           </div>
 
           {/* Preset thumbnails */}
-          {availablePresets.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {availablePresets.map((presetPath, index) => {
-                const fullUrl = `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${presetPath}`
-                const presetName = `Preset ${index + 1}`
-                
-                return (
-                  <button
-                    key={index}
-                    onClick={() => onWallpaperChange(presetPath)}
-                    className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedWallpaper === presetPath
-                        ? 'border-yellow-500 ring-2 ring-yellow-500 ring-opacity-50'
-                        : theme === 'dark' ? 'border-neutral-600 hover:border-neutral-500' : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    {!imageLoadErrors[presetPath] ? (
-                      <img
-                        src={fullUrl}
-                        alt={presetName}
-                        className="w-full h-full object-cover"
-                        onError={() => handleImageError(presetPath)}
-                        onLoad={() => console.log(`Loaded: ${presetName}`)}
-                      />
-                    ) : (
-                      <div className={`w-full h-full flex items-center justify-center ${
-                        theme === 'dark' ? 'bg-neutral-700 text-gray-400' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        <div className="text-center">
-                          <div className="text-xs font-medium">{presetName}</div>
-                          <div className="text-xs opacity-75">Failed to load</div>
-                        </div>
+          <div className="grid grid-cols-3 gap-3">
+            {availablePresets.map((preset, index) => {
+              const presetPath = typeof preset === 'string' ? preset : preset.path
+              const presetName = typeof preset === 'string' ? `Preset ${index + 1}` : preset.name
+              const fullUrl = `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${presetPath}`
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => onWallpaperChange(presetPath)}
+                  className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                    selectedWallpaper === presetPath
+                      ? 'border-yellow-500 ring-2 ring-yellow-500 ring-opacity-50'
+                      : theme === 'dark' ? 'border-neutral-600 hover:border-neutral-500' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  {!imageLoadErrors[presetPath] ? (
+                    <img
+                      src={fullUrl}
+                      alt={presetName}
+                      className="w-full h-full object-cover"
+                      onError={() => handleImageError(presetPath)}
+                      onLoad={() => console.log(`Loaded: ${presetName}`)}
+                    />
+                  ) : (
+                    <div className={`w-full h-full flex items-center justify-center ${
+                      theme === 'dark' ? 'bg-neutral-700 text-gray-400' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      <div className="text-center">
+                        <div className="text-xs font-medium">{presetName}</div>
+                        <div className="text-xs opacity-75">Failed to load</div>
                       </div>
-                    )}
-                    {selectedWallpaper === presetPath && (
-                      <div className="absolute inset-0 bg-yellow-500 bg-opacity-20 flex items-center justify-center">
-                        <Check className="h-6 w-6 text-yellow-500" />
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          )}
+                    </div>
+                  )}
+                  {selectedWallpaper === presetPath && (
+                    <div className="absolute inset-0 bg-yellow-500 bg-opacity-20 flex items-center justify-center">
+                      <Check className="h-6 w-6 text-yellow-500" />
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
 
           {/* File upload */}
           <div>
@@ -278,7 +284,7 @@ const WallpaperSection = ({ theme, selectedWallpaper, onWallpaperChange, uploade
   )
 }
 
-const PrivacySection = ({ theme, plainPassword, passwordError }) => {
+const PrivacySection = ({ theme, password, passwordError }) => {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
@@ -294,16 +300,16 @@ const PrivacySection = ({ theme, plainPassword, passwordError }) => {
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
-            value={plainPassword || ''}
+            value={password || ''}
             readOnly
             className={`w-full px-4 py-3 pr-12 rounded-lg border focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
               theme === 'dark'
                 ? 'bg-neutral-700 border-neutral-600 text-white'
                 : 'bg-gray-50 border-gray-300 text-black'
             }`}
-            placeholder={passwordError ? 'Not available' : (plainPassword ? '' : 'Loading...')}
+            placeholder={passwordError ? 'Not available' : (password ? '' : 'Loading...')}
           />
-          {plainPassword && (
+          {password && (
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -328,11 +334,11 @@ const PrivacySection = ({ theme, plainPassword, passwordError }) => {
 }
 
 const SettingsPage = ({ onBack }) => {
-  const { theme, updateTheme, wallpaper, updateWallpaper, wallpaperDimming, updateWallpaperDimming } = useTheme()
+  const { theme, updateTheme } = useTheme()
   const [selectedWallpaper, setSelectedWallpaper] = useState('')
-  const [localWallpaperDimming, setLocalWallpaperDimming] = useState(0.3)
+  const [wallpaperDimming, setWallpaperDimming] = useState(0.3)
   const [uploadedImage, setUploadedImage] = useState(null)
-  const [plainPassword, setPlainPassword] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState({})
@@ -346,22 +352,11 @@ const SettingsPage = ({ onBack }) => {
         const response = await api.get('/api/settings')
         const settings = response.data
         
-        if (settings) {
-          setSelectedWallpaper(settings.wallpaper || '')
-          setLocalWallpaperDimming(settings.dimLevel !== undefined ? settings.dimLevel : 0.3)
-          
-          // Try to get plain password if available
-          if (settings.plainPassword) {
-            setPlainPassword(settings.plainPassword)
-          } else if (settings.password) {
-            setPasswordError('Password is encrypted and cannot be displayed')
-          } else {
-            setPasswordError('No password set')
-          }
-        }
+        setTheme(settings.theme || 'dark')
+        setSelectedWallpaper(settings.wallpaper || '')
+        setPassword(settings.password || '')
       } catch (error) {
         console.error('Error fetching settings:', error)
-        setPasswordError('Failed to load password')
       } finally {
         setLoading(false)
       }
@@ -375,23 +370,20 @@ const SettingsPage = ({ onBack }) => {
     setPendingChanges(prev => ({ ...prev, theme: newTheme }))
   }
 
-  const handleWallpaperChange = (wallpaperPath) => {
-    setSelectedWallpaper(wallpaperPath)
-    updateWallpaper(wallpaperPath)
-    setPendingChanges(prev => ({ ...prev, wallpaper: wallpaperPath }))
+  const handleWallpaperChange = (wallpaper) => {
+    setSelectedWallpaper(wallpaper)
+    setPendingChanges(prev => ({ ...prev, wallpaper }))
   }
 
   const handleDimmingChange = (dimming) => {
-    setLocalWallpaperDimming(dimming)
-    updateWallpaperDimming(dimming)
-    setPendingChanges(prev => ({ ...prev, dimLevel: dimming }))
+    setWallpaperDimming(dimming)
+    setPendingChanges(prev => ({ ...prev, wallpaperDimming: dimming }))
   }
 
-  const handleImageUpload = (path, file) => {
+  const handleImageUpload = (url, file) => {
     setUploadedImage(file)
-    setSelectedWallpaper(path)
-    updateWallpaper(path)
-    setPendingChanges(prev => ({ ...prev, wallpaper: path }))
+    setSelectedWallpaper(url)
+    setPendingChanges(prev => ({ ...prev, wallpaper: url }))
   }
 
   const handleSave = async () => {
@@ -409,45 +401,18 @@ const SettingsPage = ({ onBack }) => {
     }
   }
 
-  // Generate background style based on wallpaper (same as main app)
-  const getBackgroundStyle = () => {
-    if (!wallpaper) {
-      return { backgroundColor: theme === 'dark' ? '#171717' : '#f5f5f5' }
-    }
-    
-    const wallpaperUrl = wallpaper.startsWith('http') 
-      ? wallpaper 
-      : `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${wallpaper}`
-    
-    return {
-      backgroundImage: `linear-gradient(rgba(0,0,0,${wallpaperDimming}), rgba(0,0,0,${wallpaperDimming})), url(${wallpaperUrl})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed'
-    }
-  }
-
   if (loading) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={getBackgroundStyle()}
-      >
-        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'} bg-black bg-opacity-50 px-4 py-2 rounded-lg`}>
-          Loading settings...
-        </div>
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'} flex items-center justify-center`}>
+        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'}`}>Loading settings...</div>
       </div>
     )
   }
 
   return (
-    <div 
-      className="min-h-screen"
-      style={getBackgroundStyle()}
-    >
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'}`}>
       {/* Header */}
-      <header className={`${theme === 'dark' ? 'bg-neutral-800 bg-opacity-90' : 'bg-white bg-opacity-90'} p-4 shadow-sm backdrop-blur-sm`}>
+      <header className={`${theme === 'dark' ? 'bg-neutral-800' : 'bg-white'} p-4 shadow-sm`}>
         <div className="flex items-center">
           <button
             onClick={onBack}
@@ -471,11 +436,11 @@ const SettingsPage = ({ onBack }) => {
           onWallpaperChange={handleWallpaperChange}
           uploadedImage={uploadedImage}
           onImageUpload={handleImageUpload}
-          wallpaperDimming={localWallpaperDimming}
+          wallpaperDimming={wallpaperDimming}
           onDimmingChange={handleDimmingChange}
         />
         
-        <PrivacySection theme={theme} plainPassword={plainPassword} passwordError={passwordError} />
+        <PrivacySection theme={theme} password={password} passwordError={passwordError} />
       </div>
 
       {/* Floating Save Button */}

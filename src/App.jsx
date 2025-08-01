@@ -20,51 +20,28 @@ export const useTheme = () => {
 
 const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState('dark')
-  const [wallpaper, setWallpaper] = useState('')
-  const [wallpaperDimming, setWallpaperDimming] = useState(0.3)
 
-  // Load theme and wallpaper from API on app start
+  // Load theme from API on app start
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadTheme = async () => {
       try {
         const response = await api.get('/api/settings')
         if (response.data?.theme) {
           setTheme(response.data.theme)
         }
-        if (response.data?.wallpaper) {
-          setWallpaper(response.data.wallpaper)
-        }
-        if (response.data?.dimLevel !== undefined) {
-          setWallpaperDimming(response.data.dimLevel)
-        }
       } catch (error) {
-        console.log('Could not load settings, using defaults')
+        console.log('Could not load theme from settings, using default')
       }
     }
-    loadSettings()
+    loadTheme()
   }, [])
 
   const updateTheme = useCallback((newTheme) => {
     setTheme(newTheme)
   }, [])
 
-  const updateWallpaper = useCallback((newWallpaper) => {
-    setWallpaper(newWallpaper)
-  }, [])
-
-  const updateWallpaperDimming = useCallback((newDimming) => {
-    setWallpaperDimming(newDimming)
-  }, [])
-
   return (
-    <ThemeContext.Provider value={{ 
-      theme, 
-      updateTheme, 
-      wallpaper, 
-      updateWallpaper, 
-      wallpaperDimming, 
-      updateWallpaperDimming 
-    }}>
+    <ThemeContext.Provider value={{ theme, updateTheme }}>
       {children}
     </ThemeContext.Provider>
   )
@@ -195,7 +172,7 @@ const Header = ({ onSettingsClick }) => {
   const { theme } = useTheme()
   
   return (
-    <header className={`${theme === 'dark' ? 'bg-neutral-800 bg-opacity-90' : 'bg-white bg-opacity-90'} p-4 shadow-sm backdrop-blur-sm`}>
+    <header className={`${theme === 'dark' ? 'bg-neutral-800' : 'bg-white'} p-4 shadow-sm`}>
       <div className="flex justify-between items-center">
         <h1 className={`${theme === 'dark' ? 'text-white' : 'text-black'} text-xl font-bold`}>Shared Notes</h1>
         <div className="flex items-center gap-2">
@@ -265,10 +242,10 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
   return (
     <div
       key={note._id}
-      className={`rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer transition-colors backdrop-blur-sm ${
+      className={`rounded-xl p-3 mb-4 w-[calc(50%-6px)] cursor-pointer transition-colors ${
         theme === 'dark' 
-          ? 'bg-neutral-800 bg-opacity-90 hover:bg-neutral-700 hover:bg-opacity-90' 
-          : 'bg-white bg-opacity-90 hover:bg-gray-50 hover:bg-opacity-90 border border-gray-200'
+          ? 'bg-neutral-800 hover:bg-neutral-700' 
+          : 'bg-white hover:bg-gray-50 border border-gray-200'
       }`}
       onClick={handleClick}
       onContextMenu={(e) => onContextMenu(e, note._id)}
@@ -286,7 +263,7 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
 }
 
 const AppContent = () => {
-  const { theme, wallpaper, wallpaperDimming } = useTheme()
+  const { theme } = useTheme()
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(true)
   const [isAllNotesExpanded, setIsAllNotesExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -453,37 +430,13 @@ const AppContent = () => {
     )
   }
 
-  // Generate background style based on wallpaper
-  const getBackgroundStyle = () => {
-    if (!wallpaper) {
-      return { backgroundColor: theme === 'dark' ? '#171717' : '#f5f5f5' }
-    }
-    
-    const wallpaperUrl = wallpaper.startsWith('http') 
-      ? wallpaper 
-      : `${process.env.REACT_APP_API_URL || 'https://shared-notes-backend.onrender.com'}${wallpaper}`
-    
-    return {
-      backgroundImage: `linear-gradient(rgba(0,0,0,${wallpaperDimming}), rgba(0,0,0,${wallpaperDimming})), url(${wallpaperUrl})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed'
-    }
-  }
-
   const filteredPinnedNotes = filterNotes(pinnedNotes)
   const filteredAllNotes = filterNotes(allNotes)
 
   if (loading) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={getBackgroundStyle()}
-      >
-        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'} bg-black bg-opacity-50 px-4 py-2 rounded-lg`}>
-          Loading notes...
-        </div>
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'} flex items-center justify-center`}>
+        <div className={`${theme === 'dark' ? 'text-white' : 'text-black'}`}>Loading notes...</div>
       </div>
     )
   }
@@ -497,10 +450,7 @@ const AppContent = () => {
   }
 
   return (
-    <div 
-      className="min-h-screen"
-      style={getBackgroundStyle()}
-    >
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-neutral-900' : 'bg-gray-100'}`}>
       {showLoginModal && <LoginModal onLogin={handleLogin} />}
 
       {isLoggedIn && (
@@ -523,10 +473,10 @@ const AppContent = () => {
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 backdrop-blur-sm ${
+                className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
                   theme === 'dark' 
-                    ? 'bg-neutral-800 bg-opacity-90 text-white' 
-                    : 'bg-white bg-opacity-90 text-black border border-gray-300'
+                    ? 'bg-neutral-800 text-white' 
+                    : 'bg-white text-black border border-gray-300'
                 }`}
               />
             </div>
@@ -619,10 +569,10 @@ const AppContent = () => {
 
           <button
             onClick={handleCreateNote}
-            className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors backdrop-blur-sm ${
+            className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
               theme === 'dark' 
-                ? 'bg-neutral-700 bg-opacity-90 hover:bg-neutral-600 hover:bg-opacity-90' 
-                : 'bg-white bg-opacity-90 hover:bg-gray-100 hover:bg-opacity-90 border border-gray-300'
+                ? 'bg-neutral-700 hover:bg-neutral-600' 
+                : 'bg-white hover:bg-gray-100 border border-gray-300'
             }`}
           >
             <Plus className={`h-6 w-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />

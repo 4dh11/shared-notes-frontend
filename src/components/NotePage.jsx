@@ -39,19 +39,10 @@ function NotePage({ noteId, onBack }) {
     if (noteId) {
       loadNote()
     } else {
-      // For new notes, clear everything and focus on title
-      setTitle('')
-      setContent('')
-      setIsPinned(false)
+      // For new notes, clear the content editor
       if (contentRef.current) {
         contentRef.current.innerHTML = ''
       }
-      // Focus on title for new notes
-      setTimeout(() => {
-        if (titleRef.current) {
-          titleRef.current.focus()
-        }
-      }, 100)
     }
   }, [noteId])
 
@@ -67,11 +58,8 @@ function NotePage({ noteId, onBack }) {
       
       // Set content in contentEditable div with proper HTML formatting
       if (contentRef.current) {
-        // Convert plain text to HTML with basic formatting
-        let htmlContent = note.content
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
+        // Convert line breaks to HTML and preserve formatting
+        const htmlContent = note.content
           .replace(/\n/g, '<br>')
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -92,8 +80,6 @@ function NotePage({ noteId, onBack }) {
       // Convert HTML back to plain text while preserving some formatting
       let textContent = contentRef.current.innerHTML
         .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/div>/gi, '\n')
-        .replace(/<div>/gi, '')
         .replace(/<\/p>/gi, '\n')
         .replace(/<p>/gi, '')
         .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
@@ -105,7 +91,6 @@ function NotePage({ noteId, onBack }) {
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
-        .replace(/\n\n+/g, '\n\n') // Collapse multiple newlines
       
       setContent(textContent)
     }
@@ -113,74 +98,21 @@ function NotePage({ noteId, onBack }) {
 
   // Formatting functions
   const applyFormat = (command, value = null) => {
-    // Save selection before applying formatting
-    const selection = window.getSelection()
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
-    
-    try {
-      document.execCommand(command, false, value)
-    } catch (e) {
-      console.warn('execCommand failed:', e)
-    }
-    
-    // Restore focus and selection
-    if (contentRef.current) {
-      contentRef.current.focus()
-      if (range && selection.rangeCount === 0) {
-        selection.addRange(range)
-      }
-    }
-    
+    document.execCommand(command, false, value)
+    contentRef.current?.focus()
     // Update content state after formatting
     setTimeout(() => handleContentChange(), 10)
   }
 
   // Undo/Redo functions
   const handleUndo = () => {
-    try {
-      document.execCommand('undo')
-    } catch (e) {
-      console.warn('Undo failed:', e)
-    }
+    document.execCommand('undo')
     setTimeout(() => handleContentChange(), 10)
   }
 
   const handleRedo = () => {
-    try {
-      document.execCommand('redo')
-    } catch (e) {
-      console.warn('Redo failed:', e)
-    }
+    document.execCommand('redo')
     setTimeout(() => handleContentChange(), 10)
-  }
-
-  // Handle keyboard shortcuts
-  const handleKeyDown = (e) => {
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case 'b':
-          e.preventDefault()
-          applyFormat('bold')
-          break
-        case 'i':
-          e.preventDefault()
-          applyFormat('italic')
-          break
-        case 'z':
-          if (e.shiftKey) {
-            e.preventDefault()
-            handleRedo()
-          } else {
-            e.preventDefault()
-            handleUndo()
-          }
-          break
-        case 's':
-          e.preventDefault()
-          handleSave()
-          break
-      }
-    }
   }
 
   // Save note
@@ -237,17 +169,16 @@ function NotePage({ noteId, onBack }) {
     <div 
       className="min-h-screen flex flex-col"
       style={getBackgroundStyle()}
-      onKeyDown={handleKeyDown}
     >
       {/* Top Bar */}
-      <header className={`p-4 flex items-center justify-between border-b backdrop-blur-sm ${
+      <header className={`p-4 flex items-center justify-between border-b ${
         theme === 'dark' 
           ? 'bg-neutral-800 bg-opacity-90 border-neutral-700' 
           : 'bg-white bg-opacity-90 border-gray-300'
       }`}>
         <button
           onClick={onBack}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-lg ${
             theme === 'dark' 
               ? 'text-white hover:text-gray-300 hover:bg-neutral-700' 
               : 'text-black hover:text-gray-700 hover:bg-gray-100'
@@ -259,7 +190,7 @@ function NotePage({ noteId, onBack }) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsPinned(!isPinned)}
-            className={`p-2 rounded transition-colors ${
+            className={`p-2 rounded ${
               isPinned 
                 ? 'text-yellow-500' 
                 : theme === 'dark' 
@@ -309,7 +240,7 @@ function NotePage({ noteId, onBack }) {
 
       {/* Formatting Toolbar */}
       <div className="px-4 pb-4">
-        <div className={`flex items-center gap-2 p-2 rounded-lg border backdrop-blur-sm ${
+        <div className={`flex items-center gap-2 p-2 rounded-lg border ${
           theme === 'dark'
             ? 'bg-neutral-800 bg-opacity-90 border-neutral-700'
             : 'bg-white bg-opacity-90 border-gray-300'
@@ -322,7 +253,7 @@ function NotePage({ noteId, onBack }) {
                 ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
                 : 'text-gray-600 hover:text-black hover:bg-gray-100'
             }`}
-            title="Bold (Ctrl+B)"
+            title="Bold"
           >
             <Bold className="h-4 w-4" />
           </button>
@@ -334,7 +265,7 @@ function NotePage({ noteId, onBack }) {
                 ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
                 : 'text-gray-600 hover:text-black hover:bg-gray-100'
             }`}
-            title="Italic (Ctrl+I)"
+            title="Italic"
           >
             <Italic className="h-4 w-4" />
           </button>
@@ -388,7 +319,7 @@ function NotePage({ noteId, onBack }) {
                 ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
                 : 'text-gray-600 hover:text-black hover:bg-gray-100'
             }`}
-            title="Undo (Ctrl+Z)"
+            title="Undo"
           >
             <Undo className="h-4 w-4" />
           </button>
@@ -400,7 +331,7 @@ function NotePage({ noteId, onBack }) {
                 ? 'text-gray-400 hover:text-white hover:bg-neutral-700'
                 : 'text-gray-600 hover:text-black hover:bg-gray-100'
             }`}
-            title="Redo (Ctrl+Shift+Z)"
+            title="Redo"
           >
             <Redo className="h-4 w-4" />
           </button>
@@ -414,13 +345,6 @@ function NotePage({ noteId, onBack }) {
           contentEditable={true}
           onInput={handleContentChange}
           onBlur={handleContentChange}
-          onPaste={(e) => {
-            // Handle paste to clean up formatting
-            e.preventDefault()
-            const paste = (e.clipboardData || window.clipboardData).getData('text')
-            document.execCommand('insertText', false, paste)
-            setTimeout(() => handleContentChange(), 10)
-          }}
           className={`w-full h-full min-h-96 bg-transparent text-base focus:outline-none resize-none leading-relaxed ${
             theme === 'dark' ? 'text-white' : 'text-black'
           }`}
@@ -439,7 +363,6 @@ function NotePage({ noteId, onBack }) {
           content: attr(data-placeholder);
           color: ${theme === 'dark' ? '#6b7280' : '#9ca3af'};
           font-style: italic;
-          pointer-events: none;
         }
         
         [contenteditable]:focus {
@@ -463,22 +386,6 @@ function NotePage({ noteId, onBack }) {
         /* Improve readability with better line spacing */
         [contenteditable] {
           line-height: 1.6;
-        }
-        
-        /* Better handling of line breaks */
-        [contenteditable] br {
-          display: block;
-          margin: 0.2em 0;
-        }
-        
-        /* Prevent div creation on enter */
-        [contenteditable] div {
-          display: inline;
-        }
-        
-        [contenteditable] div:after {
-          content: "\A";
-          white-space: pre;
         }
       `}</style>
     </div>
