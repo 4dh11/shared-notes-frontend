@@ -10,11 +10,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Safe area inset variables */
-  --safe-area-inset-top: env(safe-area-inset-top, 0px);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-inset-left: env(safe-area-inset-left, 0px);
-  --safe-area-inset-right: env(safe-area-inset-right, 0px);
 }
 
 /* Mobile-first responsive design */
@@ -34,11 +29,7 @@ body {
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden; /* Prevent horizontal scrolling */
-  /* Safe area support */
-  padding-top: var(--safe-area-inset-top);
-  padding-bottom: var(--safe-area-inset-bottom);
-  padding-left: var(--safe-area-inset-left);
-  padding-right: var(--safe-area-inset-right);
+  /* Remove the min-width that might cause issues on small screens */
 }
 
 #root {
@@ -64,81 +55,46 @@ input, textarea, select {
   max-width: 100%;
 }
 
-/* HEADER SPACING - CONSISTENT BETWEEN HOME AND SETTINGS */
-.app-header, .settings-header {
-  padding-top: calc(1rem + var(--safe-area-inset-top)) !important;
-  padding-bottom: 1rem !important;
-  padding-left: calc(1rem + var(--safe-area-inset-left)) !important;
-  padding-right: calc(1rem + var(--safe-area-inset-right)) !important;
+/* SAFE AREA CLASSES FOR STATUS BAR AND NAVIGATION */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 60px) !important;
 }
 
-/* HOME SCREEN CONTENT WITH BETTER BREATHING ROOM */
-.home-content {
-  padding-left: calc(1.25rem + var(--safe-area-inset-left)) !important;
-  padding-right: calc(1.25rem + var(--safe-area-inset-right)) !important;
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 40px) !important;
 }
 
-/* Section titles spacing for "Shared Notes", "Pinned", "Notes" */
-.section-title {
-  margin-left: 0.25rem;
-  margin-bottom: 0.75rem;
+.safe-left {
+  padding-left: env(safe-area-inset-left, 0px) !important;
 }
 
-/* NOTE EDITOR CONTAINER - ELEVATED ABOVE NAV BAR */
-.note-editor-container {
-  padding-bottom: calc(4.5rem + var(--safe-area-inset-bottom)) !important; /* 72px + safe area */
+.safe-right {
+  padding-right: env(safe-area-inset-right, 0px) !important;
 }
 
-/* NOTE EDITOR TOP TOOLBAR */
+/* Header spacing - applies to main app header */
+.app-header {
+  padding-top: env(safe-area-inset-top, 60px) !important;
+  padding-left: env(safe-area-inset-left, 1rem) !important;
+  padding-right: env(safe-area-inset-right, 1rem) !important;
+}
+
+/* Note editor top toolbar spacing */
 .note-editor-toolbar {
-  padding-top: calc(1rem + var(--safe-area-inset-top)) !important;
-  padding-left: calc(1rem + var(--safe-area-inset-left)) !important;
-  padding-right: calc(1rem + var(--safe-area-inset-right)) !important;
+  padding-top: env(safe-area-inset-top, 60px) !important;
+  padding-left: env(safe-area-inset-left, 1rem) !important;
+  padding-right: env(safe-area-inset-right, 1rem) !important;
 }
 
-/* BOTTOM TOOLBAR - ELEVATED ABOVE PHONE NAV BAR */
-.bottom-toolbar {
-  bottom: calc(4rem + var(--safe-area-inset-bottom)) !important; /* 64px above nav bar */
-  left: calc(1rem + var(--safe-area-inset-left)) !important;
-  right: calc(1rem + var(--safe-area-inset-right)) !important;
-  height: 3rem; /* 48px height */
-  min-height: 3rem;
-  z-index: 50;
+/* Note editor bottom toolbar spacing - elevated above nav bar */
+.note-editor-bottom-toolbar {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 72px) !important;
+  padding-left: env(safe-area-inset-left, 1rem) !important;
+  padding-right: env(safe-area-inset-right, 1rem) !important;
 }
 
-/* Toolbar buttons */
-.toolbar-button {
-  min-height: 2.5rem;
-  min-width: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* RESPONSIVE ADJUSTMENTS */
+/* Mobile-specific responsive adjustments */
 @media (max-width: 768px) {
-  /* Reduce home content padding on smaller screens */
-  .home-content {
-    padding-left: calc(1rem + var(--safe-area-inset-left)) !important;
-    padding-right: calc(1rem + var(--safe-area-inset-right)) !important;
-  }
-  
-  /* Adjust section title spacing */
-  .section-title {
-    margin-left: 0.125rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  /* Adjust bottom toolbar for smaller screens */
-  .bottom-toolbar {
-    bottom: calc(3.5rem + var(--safe-area-inset-bottom)) !important; /* 56px for smaller screens */
-  }
-  
-  /* Adjust note editor container padding */
-  .note-editor-container {
-    padding-bottom: calc(4rem + var(--safe-area-inset-bottom)) !important; /* 64px + safe area */
-  }
-  
   /* Ensure modal fits on mobile */
   .fixed.inset-0 {
     padding: 0.5rem;
@@ -180,8 +136,8 @@ input, textarea, select {
   
   /* Fix floating action button positioning */
   .fixed.bottom-4.right-4 {
-    bottom: calc(1rem + var(--safe-area-inset-bottom)) !important;
-    right: calc(1rem + var(--safe-area-inset-right)) !important;
+    bottom: max(1rem, env(safe-area-inset-bottom, 1rem)) !important;
+    right: max(1rem, env(safe-area-inset-right, 1rem)) !important;
   }
 }
 
@@ -202,41 +158,26 @@ input, textarea, select {
     gap: 0.25rem !important; /* Smaller gap for very small screens */
   }
   
-  /* Further adjust bottom toolbar for very small screens */
-  .bottom-toolbar {
-    bottom: calc(3rem + var(--safe-area-inset-bottom)) !important; /* 48px for very small screens */
+  /* Adjust safe area for smaller screens */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 50px) !important;
   }
   
-  /* Adjust note editor container for very small screens */
-  .note-editor-container {
-    padding-bottom: calc(3.5rem + var(--safe-area-inset-bottom)) !important; /* 56px + safe area */
+  .app-header {
+    padding-top: env(safe-area-inset-top, 50px) !important;
   }
-}
-
-/* LEGACY SAFE AREA CLASSES - KEEPING FOR COMPATIBILITY */
-.safe-top {
-  padding-top: calc(60px + var(--safe-area-inset-top)) !important;
-}
-
-.safe-bottom {
-  padding-bottom: calc(40px + var(--safe-area-inset-bottom)) !important;
-}
-
-.safe-left {
-  padding-left: var(--safe-area-inset-left) !important;
-}
-
-.safe-right {
-  padding-right: var(--safe-area-inset-right) !important;
-}
-
-/* FIXED POSITIONING ADJUSTMENTS */
-.fixed-bottom {
-  bottom: calc(1.5rem + var(--safe-area-inset-bottom)) !important;
-}
-
-.fixed-bottom-large {
-  bottom: calc(6rem + var(--safe-area-inset-bottom)) !important;
+  
+  .note-editor-toolbar {
+    padding-top: env(safe-area-inset-top, 50px) !important;
+  }
+  
+  .settings-header {
+    padding-top: env(safe-area-inset-top, 50px) !important;
+  }
+  
+  .note-editor-bottom-toolbar {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 64px) !important;
+  }
 }
 
 /* Custom scrollbar */
@@ -265,7 +206,7 @@ input, textarea, select {
   user-select: none;
 }
 
-/* Safe area insets for devices with notches - enhanced support */
+/* Safe area insets for devices with notches */
 @supports (padding: max(0px)) {
   body {
     padding-left: max(0px, env(safe-area-inset-left));
@@ -323,4 +264,24 @@ input, textarea, select {
 
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(24px);
+}
+
+/* Status bar spacing - enhanced */
+.app-header {
+  padding-top: env(safe-area-inset-top, 60px) !important;
+  padding-left: env(safe-area-inset-left, 1rem) !important;
+  padding-right: env(safe-area-inset-right, 1rem) !important;
+}
+
+/* Home screen content spacing */
+.home-content {
+  padding-left: env(safe-area-inset-left, 1.25rem) !important;
+  padding-right: env(safe-area-inset-right, 1.25rem) !important;
+}
+
+/* Settings page header spacing */
+.settings-header {
+  padding-top: env(safe-area-inset-top, 60px) !important;
+  padding-left: env(safe-area-inset-left, 1rem) !important;
+  padding-right: env(safe-area-inset-right, 1rem) !important;
 }

@@ -11,7 +11,7 @@ const Header = () => {
     <header 
       className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} app-header shadow-sm`}
     >
-      <div className="flex justify-between items-center px-4 pb-4">
+      <div className="flex justify-between items-center px-1 pb-4">
         <Link to="/" className={`${theme === "dark" ? "text-white" : "text-black"} text-xl font-bold`}>
           Shared Notes
         </Link>

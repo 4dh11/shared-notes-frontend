@@ -538,8 +538,8 @@ const SettingsPage = ({ onLogout, onSettingsUpdated }) => {
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-neutral-900" : "bg-gray-100"}`}>
-      <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} shadow-sm settings-header`}>
-        <div className="flex items-center">
+      <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} app-header shadow-sm`}>
+        <div className="flex items-center px-1">
           <button
             onClick={() => navigate("/")}
             className={`mr-4 p-2 rounded-lg ${theme === "dark" ? "text-white hover:bg-neutral-700" : "text-black hover:bg-gray-100"}`}
@@ -550,7 +550,7 @@ const SettingsPage = ({ onLogout, onSettingsUpdated }) => {
         </div>
       </header>
 
-      <div className="home-content space-y-6 py-4 pb-20">
+      <div className="p-4 space-y-6 pb-20">
         <ThemeSection theme={theme} onThemeChange={handleThemeChange} />
 
         <WallpaperSection

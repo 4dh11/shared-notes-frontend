@@ -406,8 +406,6 @@ const HomePageContent = () => {
       {isLoggedIn && (
         <>
           <Header />
-          
-          {/* Error message with proper spacing */}
           {error && (
             <div className="home-content mt-4">
               <div className="p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
@@ -415,8 +413,6 @@ const HomePageContent = () => {
               </div>
             </div>
           )}
-          
-          {/* Search bar with improved spacing */}
           <div className="home-content py-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -433,12 +429,10 @@ const HomePageContent = () => {
               />
             </div>
           </div>
-          
-          {/* Pinned notes section with proper spacing */}
           <div className="home-content py-2">
             <button
               onClick={() => setIsPinnedExpanded(!isPinnedExpanded)}
-              className={`flex items-center justify-between w-full text-lg font-medium mb-3 section-title ${
+              className={`flex items-center justify-between w-full text-lg font-medium mb-3 ${
                 theme === "dark" ? "text-white" : "text-black"
               }`}
             >
@@ -473,17 +467,13 @@ const HomePageContent = () => {
               </div>
             )}
           </div>
-
-          {/* Divider with proper spacing */}
           <div className="home-content py-1">
             <hr className={`${theme === "dark" ? "border-gray-600" : "border-gray-300"}`} />
           </div>
-
-          {/* All notes section with proper spacing */}
           <div className="home-content py-4">
             <button
               onClick={() => setIsAllNotesExpanded(!isAllNotesExpanded)}
-              className={`flex items-center justify-between w-full text-lg font-medium mb-3 section-title ${
+              className={`flex items-center justify-between w-full text-lg font-medium mb-3 ${
                 theme === "dark" ? "text-white" : "text-black"
               }`}
             >
@@ -518,8 +508,6 @@ const HomePageContent = () => {
               </div>
             )}
           </div>
-
-          {/* Context menu */}
           {contextMenu && (
             <ContextMenu
               x={contextMenu.x}
@@ -528,11 +516,9 @@ const HomePageContent = () => {
               onClose={() => setContextMenu(null)}
             />
           )}
-
-          {/* Floating action button with improved positioning */}
           <Link
             to="/note/new"
-            className={`fixed fixed-bottom w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
+            className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
               theme === "dark"
                 ? "bg-neutral-700 hover:bg-neutral-600"
                 : "bg-white hover:bg-gray-100 border border-gray-300"
