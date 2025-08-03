@@ -1,27 +1,32 @@
-import { Settings } from 'lucide-react'
+"use client"
 
-const Header = ({ onSettingsClick }) => {
+import { Settings } from "lucide-react"
+import { Link } from "react-router-dom"
+import { useTheme } from "../contexts/ThemeContext.jsx" // Import useTheme from its new location
+
+const Header = () => {
+  const { theme } = useTheme()
+
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Title */}
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Shared Notes
-          </h1>
-          
-          {/* Settings Button */}
-          <button 
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            onClick={onSettingsClick}
+    <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}>
+      <div className="flex justify-between items-center">
+        <Link to="/" className={`${theme === "dark" ? "text-white" : "text-black"} text-xl font-bold`}>
+          Shared Notes
+        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/settings"
+            className={`p-2 rounded-lg ${
+              theme === "dark" ? "text-white hover:bg-neutral-700" : "text-black hover:bg-gray-100"
+            }`}
             aria-label="Settings"
           >
-            <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-          </button>
+            <Settings className="h-6 w-6" />
+          </Link>
         </div>
       </div>
     </header>
   )
 }
 
-export default Header 
+export default Header

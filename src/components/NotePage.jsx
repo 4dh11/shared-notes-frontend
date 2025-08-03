@@ -1,135 +1,291 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { ArrowLeft, Pin, PinOff, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Undo, Redo } from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import {
+  ArrowLeft,
+  Pin,
+  PinOff,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  Type,
+  Undo,
+  Redo,
+  List,
+  ListOrdered,
+} from "lucide-react"
+import { useParams, useNavigate } from "react-router-dom"
 import api from "../api"
-import { useTheme } from "../App"
+import { useTheme } from "../contexts/ThemeContext.jsx"
+import { markdownToHtml } from "../utils/markdownToHtml.js"
+import { htmlToMarkdown } from "../utils/htmlToMarkdown.js"
 
-function NotePage({ noteId, onBack }) {
+function NotePage() {
+  const { noteId } = useParams()
+  const navigate = useNavigate()
+
   const { theme, wallpaper, wallpaperDimming } = useTheme()
+
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [isPinned, setIsPinned] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [activeBlockStyle, setActiveBlockStyle] = useState("p")
+  const [isBoldActive, setIsBoldActive] = useState(false)
+  const [isItalicActive, setIsItalicActive] = useState(false)
+  const [isBulletListActive, setIsBulletListActive] = useState(false)
+  const [isNumberedListActive, setIsNumberedListActive] = useState(false)
 
   const contentRef = useRef(null)
   const titleRef = useRef(null)
 
-  // Generate background style based on wallpaper (same as main app)
-  const getBackgroundStyle = () => {
-    if (!wallpaper) {
-      return { backgroundColor: theme === "dark" ? "#171717" : "#f5f5f5" }
-    }
-
-    // IMPORTANT: Ensure process.env.REACT_APP_API_URL is correctly configured for Next.js
-    // For Next.js, client-side environment variables must be prefixed with NEXT_PUBLIC_
-    // e.g., process.env.NEXT_PUBLIC_API_URL
-    const wallpaperUrl = wallpaper.startsWith("http")
-      ? wallpaper
-      : `${process.env.NEXT_PUBLIC_API_URL || "https://shared-notes-backend.onrender.com"}${wallpaper}`
-
-    return {
-      backgroundImage: `linear-gradient(rgba(0,0,0,${wallpaperDimming}), rgba(0,0,0,${wallpaperDimming})), url(${wallpaperUrl})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundRepeat: "no-repeat",
-      backgroundAttachment: "fixed",
-    }
-  }
-
-  // Load existing note if editing
-  useEffect(() => {
-    if (noteId) {
-      loadNote()
-    } else {
-      // For new notes, clear the content editor
-      if (contentRef.current) {
-        contentRef.current.innerHTML = ""
-      }
-      setTitle("") // Clear title for new notes
-      setContent("") // Clear content state for new notes
-      setIsPinned(false) // Reset pinned state for new notes
-    }
-  }, [noteId])
-
-  const loadNote = async () => {
+  const loadNote = useCallback(async () => {
     try {
       setLoading(true)
       const response = await api.get(`/api/notes/${noteId}`)
-
-      const note = response.data
-      setTitle(note.title)
-      setContent(note.content)
-      setIsPinned(note.pinned)
-
-      // Set content in contentEditable div with proper HTML formatting
-      if (contentRef.current) {
-        // Create a temporary div to safely HTML-escape the content
-        const tempDiv = document.createElement("div")
-        tempDiv.textContent = note.content // Safely escapes HTML characters
-
-        let htmlContent = tempDiv.innerHTML // Get the HTML-escaped content
-
-        // Now apply markdown-like formatting on the HTML-escaped content
-        htmlContent = htmlContent
-          .replace(/\n/g, "<br>")
-          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\*(.*?)\*/g, "<em>$1</em>")
-
-        contentRef.current.innerHTML = htmlContent
-      }
+      const noteData = response.data
+      console.log("NotePage: Fetched noteData object:", noteData)
+      console.log("NotePage: Raw Markdown from backend (noteData.content):", noteData.content)
+      const htmlContentForEditor = markdownToHtml(noteData.content)
+      console.log("NotePage: HTML after markdownToHtml conversion:", htmlContentForEditor)
+      setTitle(noteData.title)
+      setContent(htmlContentForEditor)
+      setIsPinned(noteData.pinned)
     } catch (err) {
       setError("Failed to load note")
       console.error("Error loading note:", err)
     } finally {
       setLoading(false)
     }
+  }, [noteId])
+
+  useEffect(() => {
+    console.log("NotePage: Current theme from context is:", theme)
+    console.log("NotePage: Current wallpaper from context is:", wallpaper)
+  }, [theme, wallpaper])
+
+  const getBackgroundStyle = () => {
+    const style = {}
+
+    if (!wallpaper) {
+      style.backgroundColor = theme === "dark" ? "#171717" : "#f5f5f5"
+    } else {
+      const wallpaperBaseUrl = import.meta.env.VITE_API_URL || "https://shared-notes-backend.onrender.com"
+      const wallpaperUrl = wallpaper.startsWith("http") ? wallpaper : `${wallpaperBaseUrl}${wallpaper}`
+
+      style.backgroundImage = `linear-gradient(rgba(0,0,0,${wallpaperDimming}), rgba(0,0,0,${wallpaperDimming})), url(${wallpaperUrl})`
+      style.backgroundSize = "cover"
+      style.backgroundPosition = "center"
+      style.backgroundRepeat = "no-repeat"
+      style.backgroundAttachment = "fixed"
+      style.backgroundColor = theme === "dark" ? "#171717" : "#f5f5f5"
+    }
+    console.log("NotePage: getBackgroundStyle returning:", style)
+    return style
   }
 
-  // Handle content changes in contentEditable div
+  const updateActiveBlockStyle = useCallback(() => {
+    if (!contentRef.current) return
+
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) {
+      setActiveBlockStyle("p")
+      setIsBoldActive(false)
+      setIsItalicActive(false)
+      setIsBulletListActive(false)
+      setIsNumberedListActive(false)
+      return
+    }
+
+    // Update block style
+    const currentFormatBlock = document.queryCommandValue("formatBlock").toLowerCase()
+    if (currentFormatBlock === "h1") {
+      setActiveBlockStyle("h1")
+    } else if (currentFormatBlock === "h2") {
+      setActiveBlockStyle("h2")
+    } else {
+      setActiveBlockStyle("p")
+    }
+
+    // Update inline styles
+    setIsBoldActive(document.queryCommandState("bold"))
+    setIsItalicActive(document.queryCommandState("italic"))
+
+    // Update list states
+    const currentNode = selection.anchorNode
+    const parentLi = currentNode?.nodeType === Node.TEXT_NODE 
+      ? currentNode.parentElement?.closest("li") 
+      : currentNode?.closest?.("li")
+    
+    if (parentLi) {
+      const parentList = parentLi.closest("ul, ol")
+      if (parentList) {
+        setIsBulletListActive(parentList.tagName.toLowerCase() === "ul")
+        setIsNumberedListActive(parentList.tagName.toLowerCase() === "ol")
+      }
+    } else {
+      setIsBulletListActive(false)
+      setIsNumberedListActive(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (noteId && noteId !== "new") {
+      loadNote()
+    } else {
+      if (contentRef.current) {
+        contentRef.current.innerHTML = ""
+      }
+      setTitle("")
+      setContent("")
+      setIsPinned(false)
+      setActiveBlockStyle("p")
+      setIsBoldActive(false)
+      setIsItalicActive(false)
+      setIsBulletListActive(false)
+      setIsNumberedListActive(false)
+    }
+    
+    const timeoutId = setTimeout(() => {
+      if (contentRef.current) {
+        contentRef.current.focus()
+        updateActiveBlockStyle()
+      }
+    }, 0)
+    
+    if (contentRef.current) {
+      console.log("NotePage: contentRef.current.innerHTML after load/reset:", contentRef.current.innerHTML)
+    }
+    return () => clearTimeout(timeoutId)
+  }, [noteId, loadNote, updateActiveBlockStyle])
+
+  useEffect(() => {
+    if (contentRef.current && contentRef.current.innerHTML !== content) {
+      contentRef.current.innerHTML = content
+      updateActiveBlockStyle()
+    }
+  }, [content, updateActiveBlockStyle])
+
   const handleContentChange = () => {
     if (contentRef.current) {
-      // Convert HTML back to plain text while preserving some formatting
-      const textContent = contentRef.current.innerHTML
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<\/p>/gi, "\n")
-        .replace(/<p>/gi, "")
-        .replace(/<strong>(.*?)<\/strong>/gi, "**$1**")
-        .replace(/<b>(.*?)<\/b>/gi, "**$1**")
-        .replace(/<em>(.*?)<\/em>/gi, "*$1*")
-        .replace(/<i>(.*?)<\/i>/gi, "*$1*")
-        .replace(/<[^>]*>/g, "") // Remove any other HTML tags
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
+      let htmlContent = contentRef.current.innerHTML
 
-      setContent(textContent)
+      // Clean up formatting artifacts
+      htmlContent = htmlContent.replace(/<p>\s*\*\s*<\/p>/g, "<p><br></p>")
+      htmlContent = htmlContent.replace(/^\s*\*\s*$/gm, "")
+
+      if (htmlContent !== contentRef.current.innerHTML) {
+        contentRef.current.innerHTML = htmlContent
+      }
+
+      setContent(htmlContent)
+      updateActiveBlockStyle()
     }
   }
 
-  // Formatting functions
   const applyFormat = (command, value = null) => {
-    document.execCommand(command, false, value)
-    contentRef.current?.focus()
-    // Update content state after formatting
-    setTimeout(() => handleContentChange(), 10)
+    if (!contentRef.current) return
+
+    contentRef.current.focus()
+
+    if (command === "bold") {
+      document.execCommand("bold", false, value)
+      setIsBoldActive(document.queryCommandState("bold"))
+    } else if (command === "italic") {
+      document.execCommand("italic", false, value)
+      setIsItalicActive(document.queryCommandState("italic"))
+    } else if (command === "formatBlock") {
+      const currentFormatBlock = document.queryCommandValue("formatBlock").toLowerCase()
+
+      if (currentFormatBlock === value?.toLowerCase()) {
+        document.execCommand("formatBlock", false, "P")
+      } else {
+        document.execCommand("formatBlock", false, value)
+      }
+      updateActiveBlockStyle()
+    } else if (command === "insertUnorderedList") {
+      document.execCommand("insertUnorderedList", false, value)
+      setIsBulletListActive(document.queryCommandState("insertUnorderedList"))
+      setIsNumberedListActive(false)
+      updateActiveBlockStyle()
+    } else if (command === "insertOrderedList") {
+      document.execCommand("insertOrderedList", false, value)
+      setIsNumberedListActive(document.queryCommandState("insertOrderedList"))
+      setIsBulletListActive(false)
+      updateActiveBlockStyle()
+    }
   }
 
-  // Undo/Redo functions
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault()
+
+      const selection = window.getSelection()
+      if (!selection.rangeCount) return
+
+      const range = selection.getRangeAt(0)
+      const currentNode = range.startContainer.nodeType === Node.TEXT_NODE 
+        ? range.startContainer.parentElement 
+        : range.startContainer
+      const currentLi = currentNode.closest("li")
+
+      if (currentLi) {
+        const textContent = currentLi.textContent.trim()
+
+        if (!textContent) {
+          // Empty list item - break out of list
+          document.execCommand("insertParagraph")
+          // Clean up empty list items that might remain
+          setTimeout(() => {
+            const emptyLis = contentRef.current.querySelectorAll("li:empty")
+            emptyLis.forEach(li => {
+              if (!li.textContent.trim()) {
+                const list = li.parentElement
+                li.remove()
+                if (!list.children.length) {
+                  list.remove()
+                }
+              }
+            })
+          }, 0)
+        } else {
+          // Create new list item
+          const newLi = document.createElement("li")
+          newLi.innerHTML = "<br>"
+
+          currentLi.parentNode.insertBefore(newLi, currentLi.nextSibling)
+
+          // Position cursor
+          range.setStart(newLi, 0)
+          range.collapse(true)
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+      } else {
+        // Not in a list
+        document.execCommand("insertText", false, "\n")
+      }
+      handleContentChange()
+    } else if (event.key === " ") {
+      event.preventDefault()
+      document.execCommand("insertHTML", false, "&nbsp;")
+      handleContentChange()
+    }
+  }
+
   const handleUndo = () => {
     document.execCommand("undo")
-    setTimeout(() => handleContentChange(), 10)
+    updateActiveBlockStyle()
   }
 
   const handleRedo = () => {
     document.execCommand("redo")
-    setTimeout(() => handleContentChange(), 10)
+    updateActiveBlockStyle()
   }
 
-  // Save note
   const handleSave = async () => {
     if (!title.trim()) {
       setError("Please enter a title")
@@ -141,23 +297,25 @@ function NotePage({ noteId, onBack }) {
       setSaving(true)
       setError("")
 
+      const markdownContent = htmlToMarkdown(contentRef.current.innerHTML)
+      console.log("NotePage: Markdown content before saving (htmlToMarkdown output):", markdownContent)
+
       const noteData = {
         title: title.trim(),
-        content: content.trim(),
+        content: markdownContent.trim(),
         pinned: isPinned,
       }
 
-      if (noteId) {
-        // Update existing note
+      console.log("NotePage: Saving note with data:", noteData)
+
+      if (noteId && noteId !== "new") {
         await api.put(`/api/notes/${noteId}`, noteData)
       } else {
-        // Create new note
         await api.post("/api/notes", noteData)
       }
 
-      // Success feedback
       setError("")
-      setTimeout(() => onBack(), 500) // Brief delay to show success
+      setTimeout(() => navigate("/"), 500)
     } catch (err) {
       setError("Failed to save note")
       console.error("Error saving note:", err)
@@ -178,9 +336,35 @@ function NotePage({ noteId, onBack }) {
     )
   }
 
+  const getButtonClasses = (styleName) => {
+    const baseClasses = `p-2 rounded transition-colors`
+    const activeClasses = theme === "dark" ? "bg-yellow-500 text-black" : "bg-yellow-500 text-black"
+    const inactiveClasses =
+      theme === "dark"
+        ? "text-gray-400 hover:text-white hover:bg-neutral-700"
+        : "text-gray-600 hover:text-black hover:bg-gray-100"
+
+    if (["h1", "h2", "p"].includes(styleName)) {
+      return `${baseClasses} ${activeBlockStyle === styleName ? activeClasses : inactiveClasses}`
+    }
+    if (styleName === "bold") {
+      return `${baseClasses} ${isBoldActive ? activeClasses : inactiveClasses}`
+    }
+    if (styleName === "italic") {
+      return `${baseClasses} ${isItalicActive ? activeClasses : inactiveClasses}`
+    }
+    if (styleName === "bulletList") {
+      return `${baseClasses} ${isBulletListActive ? activeClasses : inactiveClasses}`
+    }
+    if (styleName === "numberedList") {
+      return `${baseClasses} ${isNumberedListActive ? activeClasses : inactiveClasses}`
+    }
+
+    return baseClasses
+  }
+
   return (
-    <div className="min-h-screen flex flex-col" style={getBackgroundStyle()}>
-      {/* Top Bar */}
+    <div key={`${theme}-${wallpaper}`} className="min-h-screen flex flex-col" style={getBackgroundStyle()}>
       <header
         className={`p-4 flex items-center justify-between border-b ${
           theme === "dark"
@@ -189,7 +373,7 @@ function NotePage({ noteId, onBack }) {
         }`}
       >
         <button
-          onClick={onBack}
+          onClick={() => navigate("/")}
           className={`p-2 rounded-lg ${
             theme === "dark"
               ? "text-white hover:text-gray-300 hover:bg-neutral-700"
@@ -200,6 +384,30 @@ function NotePage({ noteId, onBack }) {
         </button>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleUndo}
+            className={`p-2 rounded transition-colors ${
+              theme === "dark"
+                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
+                : "text-gray-500 hover:text-black hover:bg-gray-100"
+            }`}
+            title="Undo"
+          >
+            <Undo className="h-6 w-6" />
+          </button>
+
+          <button
+            onClick={handleRedo}
+            className={`p-2 rounded transition-colors ${
+              theme === "dark"
+                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
+                : "text-gray-500 hover:text-black hover:bg-gray-100"
+            }`}
+            title="Redo"
+          >
+            <Redo className="h-6 w-6" />
+          </button>
+
           <button
             onClick={() => setIsPinned(!isPinned)}
             className={`p-2 rounded ${
@@ -227,13 +435,11 @@ function NotePage({ noteId, onBack }) {
         </div>
       </header>
 
-      {/* Error Message */}
       {error && (
         <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>
       )}
 
-      {/* Title Input */}
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-6 pt-6 pb-4">
         <input
           ref={titleRef}
           type="text"
@@ -246,128 +452,74 @@ function NotePage({ noteId, onBack }) {
         />
       </div>
 
-      {/* Formatting Toolbar */}
-      <div className="px-4 pb-4">
-        <div
-          className={`flex items-center gap-2 p-2 rounded-lg border ${
-            theme === "dark"
-              ? "bg-neutral-800 bg-opacity-90 border-neutral-700"
-              : "bg-white bg-opacity-90 border-gray-300"
-          }`}
-        >
-          {/* Text Formatting */}
-          <button
-            onClick={() => applyFormat("bold")}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Bold"
-          >
-            <Bold className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={() => applyFormat("italic")}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Italic"
-          >
-            <Italic className="h-4 w-4" />
-          </button>
-
-          <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
-
-          {/* Alignment */}
-          <button
-            onClick={() => applyFormat("justifyLeft")}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Align Left"
-          >
-            <AlignLeft className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={() => applyFormat("justifyCenter")}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Align Center"
-          >
-            <AlignCenter className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={() => applyFormat("justifyRight")}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Align Right"
-          >
-            <AlignRight className="h-4 w-4" />
-          </button>
-
-          <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
-
-          {/* Undo/Redo */}
-          <button
-            onClick={handleUndo}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Undo"
-          >
-            <Undo className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={handleRedo}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-600 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Redo"
-          >
-            <Redo className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div className="flex-1 px-4 pb-6">
+      <div className="flex-1 px-6 pb-20">
         <div
           ref={contentRef}
           contentEditable={true}
           onInput={handleContentChange}
           onBlur={handleContentChange}
+          onKeyUp={updateActiveBlockStyle}
+          onMouseUp={updateActiveBlockStyle}
+          onKeyDown={handleKeyDown}
           className={`w-full h-full min-h-96 bg-transparent text-base focus:outline-none resize-none leading-relaxed ${
             theme === "dark" ? "text-white" : "text-black"
           }`}
           style={{
             wordWrap: "break-word",
-            minHeight: "400px",
           }}
           suppressContentEditableWarning={true}
           data-placeholder="Start typing..."
         />
       </div>
 
-      {/* Custom CSS for placeholder and better styling */}
+      <div className={`fixed bottom-0 left-0 right-0 w-full p-4 z-50`}>
+        <div
+          className={`flex items-center justify-center gap-2 p-2 rounded-lg border mx-auto max-w-md ${
+            theme === "dark" ? "bg-neutral-800 border-neutral-700" : "bg-white border-gray-300"
+          }`}
+        >
+          <button onClick={() => applyFormat("bold")} className={getButtonClasses("bold")} title="Bold">
+            <Bold className="h-4 w-4" />
+          </button>
+
+          <button onClick={() => applyFormat("italic")} className={getButtonClasses("italic")} title="Italic">
+            <Italic className="h-4 w-4" />
+          </button>
+
+          <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
+
+          <button onClick={() => applyFormat("formatBlock", "H1")} className={getButtonClasses("h1")} title="Heading 1">
+            <Heading1 className="h-4 w-4" />
+          </button>
+
+          <button onClick={() => applyFormat("formatBlock", "H2")} className={getButtonClasses("h2")} title="Heading 2">
+            <Heading2 className="h-4 w-4" />
+          </button>
+
+          <button onClick={() => applyFormat("formatBlock", "P")} className={getButtonClasses("p")} title="Normal Text">
+            <Type className="h-4 w-4" />
+          </button>
+
+          <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
+
+          <button
+            onClick={() => applyFormat("insertUnorderedList")}
+            className={getButtonClasses("bulletList")}
+            title="Bullet List"
+          >
+            <List className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={() => applyFormat("insertOrderedList")}
+            className={getButtonClasses("numberedList")}
+            title="Numbered List"
+          >
+            <ListOrdered className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       <style jsx>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
@@ -379,12 +531,10 @@ function NotePage({ noteId, onBack }) {
           outline: none;
         }
         
-        /* Ensure proper text selection styling */
         [contenteditable]::selection {
           background-color: ${theme === "dark" ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"};
         }
         
-        /* Style for formatted text within the editor */
         [contenteditable] strong {
           font-weight: bold;
         }
@@ -393,9 +543,54 @@ function NotePage({ noteId, onBack }) {
           font-style: italic;
         }
         
-        /* Improve readability with better line spacing */
         [contenteditable] {
           line-height: 1.6;
+          white-space: pre-wrap;
+        }
+
+        [contenteditable] h1 {
+          font-size: 1.5rem;
+          font-weight: bold;
+          margin-top: 0;
+          margin-bottom: 0;
+        }
+        [contenteditable] h2 {
+          font-size: 1.25rem;
+          font-weight: bold;
+          margin-top: 0;
+          margin-bottom: 0;
+        }
+        [contenteditable] h3 {
+          font-size: 1.125rem;
+          font-weight: bold;
+          margin-top: 0;
+          margin-bottom: 0;
+        }
+        
+        [contenteditable] p {
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+        }
+
+        [contenteditable] ul {
+          list-style: disc;
+          padding-left: 20px;
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+        }
+
+        [contenteditable] ol {
+          list-style: decimal;
+          padding-left: 20px;
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+        }
+
+        [contenteditable] li {
+          margin-bottom: 0.2em;
+          padding-left: 0;
+          margin-left: 0;
+          white-space: pre-wrap;
         }
       `}</style>
     </div>

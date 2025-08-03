@@ -1,47 +1,15 @@
 "use client"
 
-import { useState, useEffect, useCallback, createContext, useContext } from "react"
-import { Search, ChevronDown, ChevronRight, Settings, Plus, Eye, EyeOff } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Search, ChevronDown, ChevronRight, Plus, Eye, EyeOff } from "lucide-react"
+import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom"
 import api from "./api"
 import NotePage from "./components/NotePage"
 import SettingsPage from "./components/SettingsPage"
+import Header from "./components/Header"
+import { useTheme } from "./contexts/ThemeContext.jsx"
+import { markdownToHtml } from "./utils/markdownToHtml.js"
 import "./App.css"
-
-// Theme Context
-const ThemeContext = createContext()
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext)
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider")
-  }
-  return context
-}
-
-const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState("dark")
-
-  // Load theme from API on app start
-  useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const response = await api.get("/api/settings")
-        if (response.data?.theme) {
-          setTheme(response.data.theme)
-        }
-      } catch (error) {
-        console.log("Could not load theme from settings, using default")
-      }
-    }
-    loadTheme()
-  }, [])
-
-  const updateTheme = useCallback((newTheme) => {
-    setTheme(newTheme)
-  }, [])
-
-  return <ThemeContext.Provider value={{ theme, updateTheme }}>{children}</ThemeContext.Provider>
-}
 
 const LoginModal = ({ onLogin }) => {
   const { theme } = useTheme()
@@ -72,7 +40,8 @@ const LoginModal = ({ onLogin }) => {
 
       if (response.data && response.data.token) {
         const { token } = response.data
-        localStorage.setItem("token", token)
+        // Store token in sessionStorage instead of localStorage for session-only persistence
+        sessionStorage.setItem("token", token)
         onLogin(token)
       } else {
         setError("Invalid response from server")
@@ -157,7 +126,7 @@ const LoginModal = ({ onLogin }) => {
           </button>
         </form>
 
-        {process.env.NODE_ENV === "development" && (
+        {import.meta.env.DEV && (
           <div
             className={`mt-4 p-2 rounded text-xs ${
               theme === "dark" ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-gray-600"
@@ -169,28 +138,6 @@ const LoginModal = ({ onLogin }) => {
         )}
       </div>
     </div>
-  )
-}
-
-const Header = ({ onSettingsClick }) => {
-  const { theme } = useTheme()
-
-  return (
-    <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}>
-      <div className="flex justify-between items-center">
-        <h1 className={`${theme === "dark" ? "text-white" : "text-black"} text-xl font-bold`}>Shared Notes</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onSettingsClick}
-            className={`p-2 rounded-lg ${
-              theme === "dark" ? "text-white hover:bg-neutral-700" : "text-black hover:bg-gray-100"
-            }`}
-          >
-            <Settings className="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-    </header>
   )
 }
 
@@ -220,8 +167,9 @@ const ContextMenu = ({ x, y, onDelete, onClose }) => {
   )
 }
 
-const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
+const NoteCard = ({ note, onContextMenu, onLongPress }) => {
   const { theme } = useTheme()
+  const navigate = useNavigate()
   let longPressTimer = null
 
   const handleMouseDown = () => {
@@ -240,7 +188,7 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
       clearTimeout(longPressTimer)
       longPressTimer = null
     }
-    handleNoteClick(note._id)
+    navigate(`/note/${note._id}`)
   }
 
   return (
@@ -257,15 +205,19 @@ const NoteCard = ({ note, onContextMenu, onLongPress, handleNoteClick }) => {
       onTouchEnd={handleMouseUp}
     >
       <h3 className={`${theme === "dark" ? "text-white" : "text-black"} font-medium mb-2 text-sm`}>{note.title}</h3>
-      <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-xs leading-relaxed`}>
-        {note.content.length > 100 ? `${note.content.substring(0, 100)}...` : note.content}
-      </p>
+      <p
+        className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-xs leading-relaxed`}
+        dangerouslySetInnerHTML={{
+          __html: markdownToHtml(note.content.length > 100 ? `${note.content.substring(0, 100)}...` : note.content),
+        }}
+      />
     </div>
   )
 }
 
-const AppContent = () => {
-  const { theme } = useTheme()
+const HomePageContent = () => {
+  const { theme, updateAllSettings } = useTheme()
+  const navigate = useNavigate()
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(true)
   const [isAllNotesExpanded, setIsAllNotesExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -276,19 +228,40 @@ const AppContent = () => {
   const [contextMenu, setContextMenu] = useState(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [currentView, setCurrentView] = useState("home")
-  const [currentNoteId, setCurrentNoteId] = useState(null)
+
+  useEffect(() => {
+    console.log("HomePageContent: Current theme from context is:", theme)
+  }, [theme])
 
   const handleLogout = useCallback(() => {
     console.log("Logging out...")
+    // Clear both localStorage and sessionStorage to ensure complete logout
     localStorage.removeItem("token")
+    sessionStorage.removeItem("token")
     setIsLoggedIn(false)
     setShowLoginModal(true)
     setPinnedNotes([])
     setAllNotes([])
     setError("")
-    setCurrentView("home")
-    setCurrentNoteId(null)
+    navigate("/")
+  }, [navigate])
+
+  // Setup session management - logout only when user closes the app
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      // Only clear session when user is actually leaving the page permanently
+      // This will trigger on browser close, tab close, or page refresh
+      sessionStorage.removeItem("token")
+      localStorage.removeItem("token")
+    }
+
+    // Add event listener only for beforeunload (browser/tab close)
+    window.addEventListener("beforeunload", handleBeforeUnload)
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+    }
   }, [])
 
   const fetchNotes = useCallback(async () => {
@@ -318,9 +291,15 @@ const AppContent = () => {
   }, [handleLogout])
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    // Check sessionStorage first (for current session), then localStorage (fallback)
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token")
     if (token) {
       console.log("Found existing token, attempting to verify...")
+      // Keep token in sessionStorage for current session
+      if (!sessionStorage.getItem("token")) {
+        sessionStorage.setItem("token", token)
+        // Don't remove from localStorage immediately - keep as backup
+      }
       verifyTokenAndFetchNotes(token)
     } else {
       console.log("No existing token found, showing login modal")
@@ -344,6 +323,7 @@ const AppContent = () => {
       setError("")
     } catch (err) {
       console.error("Token verification failed:", err)
+      sessionStorage.removeItem("token")
       localStorage.removeItem("token")
       setIsLoggedIn(false)
       setShowLoginModal(true)
@@ -380,22 +360,6 @@ const AppContent = () => {
     }
   }
 
-  const handleNoteClick = useCallback((noteId) => {
-    setCurrentNoteId(noteId)
-    setCurrentView("note")
-  }, [])
-
-  const handleCreateNote = useCallback(() => {
-    setCurrentNoteId(null)
-    setCurrentView("note")
-  }, [])
-
-  const handleBackToHome = useCallback(() => {
-    setCurrentView("home")
-    setCurrentNoteId(null)
-    fetchNotes()
-  }, [fetchNotes])
-
   const handleContextMenu = useCallback((e, noteId) => {
     e.preventDefault()
     setContextMenu({
@@ -412,16 +376,6 @@ const AppContent = () => {
       noteId,
     })
   }, [])
-
-  const handleSettingsClick = useCallback(() => {
-    console.log("Settings clicked, showing settings page")
-    setCurrentView("settings")
-  }, [])
-
-  const handleBackFromSettings = useCallback(() => {
-    setCurrentView("home")
-    fetchNotes()
-  }, [fetchNotes])
 
   const filterNotes = (notes) => {
     if (!searchQuery.trim()) return notes
@@ -445,28 +399,18 @@ const AppContent = () => {
     )
   }
 
-  if (currentView === "note") {
-    return <NotePage noteId={currentNoteId} onBack={handleBackToHome} />
-  }
-
-  if (currentView === "settings") {
-    return <SettingsPage onBack={handleBackFromSettings} />
-  }
-
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-neutral-900" : "bg-gray-100"}`}>
       {showLoginModal && <LoginModal onLogin={handleLogin} />}
 
       {isLoggedIn && (
         <>
-          <Header onSettingsClick={handleSettingsClick} />
-
+          <Header />
           {error && (
             <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
               {error}
             </div>
           )}
-
           <div className="px-4 py-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -483,7 +427,6 @@ const AppContent = () => {
               />
             </div>
           </div>
-
           <div className="px-4 py-2">
             <button
               onClick={() => setIsPinnedExpanded(!isPinnedExpanded)}
@@ -508,7 +451,6 @@ const AppContent = () => {
                       note={note}
                       onContextMenu={handleContextMenu}
                       onLongPress={handleLongPress}
-                      handleNoteClick={handleNoteClick}
                     />
                   ))
                 ) : searchQuery ? (
@@ -523,11 +465,9 @@ const AppContent = () => {
               </div>
             )}
           </div>
-
           <div className="mx-4 py-1">
             <hr className={`${theme === "dark" ? "border-gray-600" : "border-gray-300"}`} />
           </div>
-
           <div className="px-4 py-4">
             <button
               onClick={() => setIsAllNotesExpanded(!isAllNotesExpanded)}
@@ -552,7 +492,6 @@ const AppContent = () => {
                       note={note}
                       onContextMenu={handleContextMenu}
                       onLongPress={handleLongPress}
-                      handleNoteClick={handleNoteClick}
                     />
                   ))
                 ) : searchQuery ? (
@@ -567,7 +506,6 @@ const AppContent = () => {
               </div>
             )}
           </div>
-
           {contextMenu && (
             <ContextMenu
               x={contextMenu.x}
@@ -576,9 +514,8 @@ const AppContent = () => {
               onClose={() => setContextMenu(null)}
             />
           )}
-
-          <button
-            onClick={handleCreateNote}
+          <Link
+            to="/note/new"
             className={`fixed bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
               theme === "dark"
                 ? "bg-neutral-700 hover:bg-neutral-600"
@@ -586,7 +523,7 @@ const AppContent = () => {
             }`}
           >
             <Plus className={`h-6 w-6 ${theme === "dark" ? "text-white" : "text-black"}`} />
-          </button>
+          </Link>
         </>
       )}
     </div>
@@ -594,10 +531,32 @@ const AppContent = () => {
 }
 
 const App = () => {
+  const navigate = useNavigate()
+  const { updateAllSettings } = useTheme()
+
+  const handleLogout = useCallback(() => {
+    console.log("Logging out from App level...")
+    sessionStorage.removeItem("token")
+    localStorage.removeItem("token")
+    navigate("/")
+  }, [navigate])
+
+  const NotePageWrapper = () => {
+    const { noteId } = useParams()
+    return <NotePage />
+  }
+
+  const SettingsPageWrapper = () => {
+    return <SettingsPage onLogout={handleLogout} onSettingsUpdated={updateAllSettings} />
+  }
+
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <Routes>
+      <Route path="/" element={<HomePageContent />} />
+      <Route path="/note/new" element={<NotePageWrapper />} />
+      <Route path="/note/:noteId" element={<NotePageWrapper />} />
+      <Route path="/settings" element={<SettingsPageWrapper />} />
+    </Routes>
   )
 }
 
