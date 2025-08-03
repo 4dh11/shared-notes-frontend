@@ -407,13 +407,11 @@ const HomePageContent = () => {
         <>
           <Header />
           {error && (
-            <div className="home-content mt-4">
-              <div className="p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
-                {error}
-              </div>
+            <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
+              {error}
             </div>
           )}
-          <div className="home-content py-4">
+          <div className="px-4 py-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className={`h-5 w-5 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
@@ -429,7 +427,7 @@ const HomePageContent = () => {
               />
             </div>
           </div>
-          <div className="home-content py-2">
+          <div className="px-4 py-2">
             <button
               onClick={() => setIsPinnedExpanded(!isPinnedExpanded)}
               className={`flex items-center justify-between w-full text-lg font-medium mb-3 ${
@@ -467,10 +465,10 @@ const HomePageContent = () => {
               </div>
             )}
           </div>
-          <div className="home-content py-1">
+          <div className="mx-4 py-1">
             <hr className={`${theme === "dark" ? "border-gray-600" : "border-gray-300"}`} />
           </div>
-          <div className="home-content py-4">
+          <div className="px-4 py-4">
             <button
               onClick={() => setIsAllNotesExpanded(!isAllNotesExpanded)}
               className={`flex items-center justify-between w-full text-lg font-medium mb-3 ${
