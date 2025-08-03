@@ -365,73 +365,76 @@ function NotePage() {
 
   return (
     <div key={`${theme}-${wallpaper}`} className="min-h-screen flex flex-col" style={getBackgroundStyle()}>
+      {/* TOP TOOLBAR WITH SAFE AREA SUPPORT */}
       <header
-        className={`p-4 flex items-center justify-between border-b ${
+        className={`note-editor-toolbar flex items-center justify-between border-b ${
           theme === "dark"
             ? "bg-neutral-800 bg-opacity-90 border-neutral-700"
             : "bg-white bg-opacity-90 border-gray-300"
         }`}
       >
-        <button
-          onClick={() => navigate("/")}
-          className={`p-2 rounded-lg ${
-            theme === "dark"
-              ? "text-white hover:text-gray-300 hover:bg-neutral-700"
-              : "text-black hover:text-gray-700 hover:bg-gray-100"
-          }`}
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </button>
-
-        <div className="flex items-center gap-3">
+        <div className="px-4 pb-4 w-full flex items-center justify-between">
           <button
-            onClick={handleUndo}
-            className={`p-2 rounded transition-colors ${
+            onClick={() => navigate("/")}
+            className={`p-2 rounded-lg ${
               theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-500 hover:text-black hover:bg-gray-100"
+                ? "text-white hover:text-gray-300 hover:bg-neutral-700"
+                : "text-black hover:text-gray-700 hover:bg-gray-100"
             }`}
-            title="Undo"
           >
-            <Undo className="h-6 w-6" />
+            <ArrowLeft className="h-6 w-6" />
           </button>
 
-          <button
-            onClick={handleRedo}
-            className={`p-2 rounded transition-colors ${
-              theme === "dark"
-                ? "text-gray-400 hover:text-white hover:bg-neutral-700"
-                : "text-gray-500 hover:text-black hover:bg-gray-100"
-            }`}
-            title="Redo"
-          >
-            <Redo className="h-6 w-6" />
-          </button>
-
-          <button
-            onClick={() => setIsPinned(!isPinned)}
-            className={`p-2 rounded ${
-              isPinned
-                ? "text-yellow-500"
-                : theme === "dark"
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleUndo}
+              className={`p-2 rounded transition-colors ${
+                theme === "dark"
                   ? "text-gray-400 hover:text-white hover:bg-neutral-700"
                   : "text-gray-500 hover:text-black hover:bg-gray-100"
-            }`}
-          >
-            {isPinned ? <Pin className="h-6 w-6" /> : <PinOff className="h-6 w-6" />}
-          </button>
+              }`}
+              title="Undo"
+            >
+              <Undo className="h-6 w-6" />
+            </button>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              theme === "dark"
-                ? "bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white"
-                : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-black"
-            } disabled:cursor-not-allowed`}
-          >
-            {saving ? "Saving..." : "Done"}
-          </button>
+            <button
+              onClick={handleRedo}
+              className={`p-2 rounded transition-colors ${
+                theme === "dark"
+                  ? "text-gray-400 hover:text-white hover:bg-neutral-700"
+                  : "text-gray-500 hover:text-black hover:bg-gray-100"
+              }`}
+              title="Redo"
+            >
+              <Redo className="h-6 w-6" />
+            </button>
+
+            <button
+              onClick={() => setIsPinned(!isPinned)}
+              className={`p-2 rounded ${
+                isPinned
+                  ? "text-yellow-500"
+                  : theme === "dark"
+                    ? "text-gray-400 hover:text-white hover:bg-neutral-700"
+                    : "text-gray-500 hover:text-black hover:bg-gray-100"
+              }`}
+            >
+              {isPinned ? <Pin className="h-6 w-6" /> : <PinOff className="h-6 w-6" />}
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                theme === "dark"
+                  ? "bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white"
+                  : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-black"
+              } disabled:cursor-not-allowed`}
+            >
+              {saving ? "Saving..." : "Done"}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -472,51 +475,54 @@ function NotePage() {
         />
       </div>
 
-      <div className={`fixed bottom-0 left-0 right-0 w-full p-4 z-50`}>
-        <div
-          className={`flex items-center justify-center gap-2 p-2 rounded-lg border mx-auto max-w-md ${
-            theme === "dark" ? "bg-neutral-800 border-neutral-700" : "bg-white border-gray-300"
-          }`}
-        >
-          <button onClick={() => applyFormat("bold")} className={getButtonClasses("bold")} title="Bold">
-            <Bold className="h-4 w-4" />
-          </button>
-
-          <button onClick={() => applyFormat("italic")} className={getButtonClasses("italic")} title="Italic">
-            <Italic className="h-4 w-4" />
-          </button>
-
-          <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
-
-          <button onClick={() => applyFormat("formatBlock", "H1")} className={getButtonClasses("h1")} title="Heading 1">
-            <Heading1 className="h-4 w-4" />
-          </button>
-
-          <button onClick={() => applyFormat("formatBlock", "H2")} className={getButtonClasses("h2")} title="Heading 2">
-            <Heading2 className="h-4 w-4" />
-          </button>
-
-          <button onClick={() => applyFormat("formatBlock", "P")} className={getButtonClasses("p")} title="Normal Text">
-            <Type className="h-4 w-4" />
-          </button>
-
-          <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
-
-          <button
-            onClick={() => applyFormat("insertUnorderedList")}
-            className={getButtonClasses("bulletList")}
-            title="Bullet List"
+      {/* BOTTOM TOOLBAR WITH SAFE AREA SUPPORT */}
+      <div className={`fixed bottom-0 left-0 right-0 w-full note-editor-bottom-toolbar z-50`}>
+        <div className="px-4">
+          <div
+            className={`flex items-center justify-center gap-2 p-2 rounded-lg border mx-auto max-w-md ${
+              theme === "dark" ? "bg-neutral-800 border-neutral-700" : "bg-white border-gray-300"
+            }`}
           >
-            <List className="h-4 w-4" />
-          </button>
+            <button onClick={() => applyFormat("bold")} className={getButtonClasses("bold")} title="Bold">
+              <Bold className="h-4 w-4" />
+            </button>
 
-          <button
-            onClick={() => applyFormat("insertOrderedList")}
-            className={getButtonClasses("numberedList")}
-            title="Numbered List"
-          >
-            <ListOrdered className="h-4 w-4" />
-          </button>
+            <button onClick={() => applyFormat("italic")} className={getButtonClasses("italic")} title="Italic">
+              <Italic className="h-4 w-4" />
+            </button>
+
+            <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
+
+            <button onClick={() => applyFormat("formatBlock", "H1")} className={getButtonClasses("h1")} title="Heading 1">
+              <Heading1 className="h-4 w-4" />
+            </button>
+
+            <button onClick={() => applyFormat("formatBlock", "H2")} className={getButtonClasses("h2")} title="Heading 2">
+              <Heading2 className="h-4 w-4" />
+            </button>
+
+            <button onClick={() => applyFormat("formatBlock", "P")} className={getButtonClasses("p")} title="Normal Text">
+              <Type className="h-4 w-4" />
+            </button>
+
+            <div className={`w-px h-6 mx-1 ${theme === "dark" ? "bg-neutral-600" : "bg-gray-300"}`}></div>
+
+            <button
+              onClick={() => applyFormat("insertUnorderedList")}
+              className={getButtonClasses("bulletList")}
+              title="Bullet List"
+            >
+              <List className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={() => applyFormat("insertOrderedList")}
+              className={getButtonClasses("numberedList")}
+              title="Numbered List"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
