@@ -54,18 +54,22 @@ const ThemeSection = ({ theme, onThemeChange }) => {
         <div>
           <h3 className={`${theme === "dark" ? "text-white" : "text-black"} text-lg font-semibold`}>Dark Theme</h3>
         </div>
-        <button
-          onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            theme === "dark" ? "bg-yellow-500" : "bg-gray-300"
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              theme === "dark" ? "translate-x-6" : "translate-x-1"
-            }`}
+        {/* Improved Toggle Switch */}
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={theme === "dark"}
+            onChange={() => onThemeChange(theme === "dark" ? "light" : "dark")}
+            className="sr-only"
           />
-        </button>
+          <div className={`relative w-14 h-8 rounded-full transition-colors duration-300 ease-in-out ${
+            theme === "dark" ? "bg-yellow-500" : "bg-gray-300"
+          }`}>
+            <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+              theme === "dark" ? "translate-x-6" : "translate-x-0"
+            }`} />
+          </div>
+        </label>
       </div>
     </div>
   )
@@ -534,7 +538,10 @@ const SettingsPage = ({ onLogout, onSettingsUpdated }) => {
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-neutral-900" : "bg-gray-100"}`}>
-      <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}>
+      <header 
+        className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}
+        style={{ paddingTop: '2rem' }} // Add extra padding for status bar
+      >
         <div className="flex items-center">
           <button
             onClick={() => navigate("/")}

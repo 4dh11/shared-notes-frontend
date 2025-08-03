@@ -8,7 +8,10 @@ const Header = () => {
   const { theme } = useTheme()
 
   return (
-    <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}>
+    <header 
+      className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}
+      style={{ paddingTop: '2rem' }} // Add extra padding for status bar
+    >
       <div className="flex justify-between items-center">
         <Link to="/" className={`${theme === "dark" ? "text-white" : "text-black"} text-xl font-bold`}>
           Shared Notes
