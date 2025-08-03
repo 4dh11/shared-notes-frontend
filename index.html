@@ -3,11 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Enhanced viewport meta tag for mobile optimization -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- Mobile web app capabilities -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <!-- Theme color for mobile browsers -->
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- Prevent zoom on input focus (iOS) -->
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Edge compatibility -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
     <title>Shared Notes</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://shared-notes-backend.onrender.com" />
+    
+    <!-- Prevent flash of unstyled content -->
+    <style>
+      /* Critical CSS to prevent layout shift */
+      * {
+        box-sizing: border-box;
+      }
+      
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow-x: hidden;
+        font-family: system-ui, -apple-system, sans-serif;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      #root {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* Loading screen */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0a0a0a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      
+      .loading-text {
+        color: #ffffff;
+        font-size: 16px;
+      }
+    </style>
   </head>
   <body>
+    <!-- Loading screen that shows while app loads -->
+    <div class="loading-screen" id="loading-screen">
+      <div class="loading-text">Loading Shared Notes...</div>
+    </div>
+    
     <div id="root"></div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Remove loading screen after app loads -->
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            loadingScreen.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+              loadingScreen.remove();
+            }, 300);
+          }
+        }, 500);
+      });
+    </script>
   </body>
 </html>

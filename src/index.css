@@ -12,10 +12,104 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Mobile-first responsive design */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Prevent zoom on iOS when focusing inputs */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
-  min-width: 320px;
+  padding: 0;
+  width: 100%;
   min-height: 100vh;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  /* Remove the min-width that might cause issues on small screens */
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Ensure all containers are responsive */
+.container, .main-container {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Fix for mobile input zoom prevention */
+input, textarea, select {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+  max-width: 100%;
+}
+
+/* Mobile-specific responsive adjustments */
+@media (max-width: 768px) {
+  /* Ensure modal fits on mobile */
+  .fixed.inset-0 {
+    padding: 0.5rem;
+  }
+  
+  /* Make sure cards don't overflow */
+  .w-\[calc\(50\%-6px\)\] {
+    width: calc(50% - 6px) !important;
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Ensure search input is responsive */
+  .w-full {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Fix padding for mobile */
+  .px-4 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  /* Ensure buttons are touch-friendly */
+  button {
+    min-height: 44px; /* Apple's recommended touch target size */
+  }
+  
+  /* Fix floating action button positioning */
+  .fixed.bottom-4.right-4 {
+    bottom: 1rem !important;
+    right: 1rem !important;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .px-4 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  /* Make cards stack better on very small screens */
+  .w-\[calc\(50\%-6px\)\] {
+    width: 100% !important;
+    margin-bottom: 0.75rem;
+  }
+  
+  .flex.flex-wrap.gap-3.justify-between {
+    gap: 0.5rem !important;
+  }
 }
 
 /* Custom scrollbar */
@@ -34,4 +128,25 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Prevent text selection on touch devices for better UX */
+.select-none {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Safe area insets for devices with notches */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+  
+  .fixed.bottom-4.right-4 {
+    bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    right: max(1rem, env(safe-area-inset-right)) !important;
+  }
 }
