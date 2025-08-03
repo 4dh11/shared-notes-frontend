@@ -4,20 +4,20 @@ import axios from 'axios'
 // Get the backend URL from environment variables or use default
 const getBackendURL = () => {
   // For Vite (if using Vite)
-  // if (import.meta.env.VITE_API_URL) {
-  //   return import.meta.env.VITE_API_URL
-  // }
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
 
-  // // For Create React App (if using CRA)
-  // if (process.env.REACT_APP_API_URL) {
-  //   return process.env.REACT_APP_API_URL
-  // }
+  // For Create React App (if using CRA)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL
+  }
 
-  // // Default URLs based on environment
-  // if (process.env.NODE_ENV === 'production') {
-  //   // IMPORTANT: REPLACE THIS WITH YOUR ACTUAL RENDER BACKEND URL
-  //   // return 'https://shared-notes-backend.onrender.com' // <--- UPDATE THIS LINE - 
-  // }
+  // Default URLs based on environment
+  if (process.env.NODE_ENV === 'production') {
+    // IMPORTANT: REPLACE THIS WITH YOUR ACTUAL RENDER BACKEND URL
+    // return 'https://shared-notes-backend.onrender.com' // <--- UPDATE THIS LINE - 
+  }
 
   // Local development
   return 'http://localhost:5001' // Assuming your local backend runs on 5000
