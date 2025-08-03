@@ -16,7 +16,7 @@ const getBackendURL = () => {
   // Default URLs based on environment
   if (process.env.NODE_ENV === 'production') {
     // IMPORTANT: REPLACE THIS WITH YOUR ACTUAL RENDER BACKEND URL
-    // return 'https://shared-notes-backend.onrender.com' // <--- UPDATE THIS LINE - 
+    return 'https://shared-notes-backend.onrender.com' // <--- UPDATE THIS LINE - 
   }
 
   // Local development
