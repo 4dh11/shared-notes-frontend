@@ -538,10 +538,7 @@ const SettingsPage = ({ onLogout, onSettingsUpdated }) => {
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-neutral-900" : "bg-gray-100"}`}>
-      <header 
-        className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} p-4 shadow-sm`}
-        style={{ paddingTop: '2rem' }} // Add extra padding for status bar
-      >
+      <header className={`${theme === "dark" ? "bg-neutral-800" : "bg-white"} shadow-sm settings-header`}>
         <div className="flex items-center">
           <button
             onClick={() => navigate("/")}
@@ -553,7 +550,7 @@ const SettingsPage = ({ onLogout, onSettingsUpdated }) => {
         </div>
       </header>
 
-      <div className="p-4 space-y-6 pb-20">
+      <div className="home-content space-y-6 py-4 pb-20">
         <ThemeSection theme={theme} onThemeChange={handleThemeChange} />
 
         <WallpaperSection
