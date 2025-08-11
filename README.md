@@ -1,12 +1,35 @@
-# React + Vite
+# Personal Shared Notes - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the **frontend** for the Personal Shared Notes app, built with **React.js**, **Vite**, **Tailwind CSS**, and connected to a MERN backend.  
+It allows multiple users to add, read, and edit shared notes in real time.
 
-Currently, two official plugins are available:
+## Features
+- Light/Dark mode toggle
+- Create, view, delete, and pin notes
+- Search notes
+- Custom wallpapers and gallery uploads
+- Password-protected view mode
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
+- React.js (Vite)
+- Tailwind CSS
+- Axios (API calls)
 
-## Expanding the ESLint configuration
+## Getting Started
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/your-username/shared-notes-frontend.git
+   cd shared-notes-frontend
+   
+2. Install Dependencies:
+   npm install
+   
+3. Create a .env file:
+   VITE_API_URL=http://localhost:5000
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+4. Run locally:
+   npm run dev
+
+##Build for Production
+  npm run build
+
